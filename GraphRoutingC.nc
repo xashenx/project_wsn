@@ -1,39 +1,39 @@
- #include "TreeBuilding.h"
+ #include "GraphBuilding.h"
 
-configuration TreeRoutingC
+configuration GraphRoutingC
 {
-  provides interface TreeConnection;
+  provides interface GraphConnection;
 }
 implementation
 {
-  components MainC, TreeRoutingP, ActiveMessageC, LedsC;
+  components MainC, GraphRoutingP, ActiveMessageC, LedsC;
   components new TimerMilliC() as Timer0;
   components new TimerMilliC() as Timer1;
-  components new AMSenderC(AM_TREEBUILDING);
-  components new AMReceiverC(AM_TREEBUILDING);
+  components new AMSenderC(AM_GRAPHBUILDING);
+  components new AMReceiverC(AM_GRAPHBUILDING);
   components RandomC;
 #ifdef TOSSIM
   	components new DemoSensorC() as ReadVoltage;
 	components TossimActiveMessageC;
-	TreeRoutingP.TossimPacket -> TossimActiveMessageC;
+	GraphRoutingP.TossimPacket -> TossimActiveMessageC;
 #else
   components new VoltageC() as ReadVoltage;
   components CC2420PacketC;
-  TreeRoutingP.CC2420Packet -> CC2420PacketC;
+  GraphRoutingP.CC2420Packet -> CC2420PacketC;
 #endif
   
-  TreeConnection = TreeRoutingP;
+  GraphConnection = GraphRoutingP;
 
-  TreeRoutingP -> MainC.Boot;
-  TreeRoutingP.TimerNotification -> Timer0;
-  TreeRoutingP.TimerRefresh -> Timer1;
-  TreeRoutingP.Leds -> LedsC;
-  TreeRoutingP.Packet -> AMSenderC;
-  TreeRoutingP.AMPacket -> ActiveMessageC;
-  TreeRoutingP.AMSend -> AMSenderC;
-  TreeRoutingP.AMControl -> ActiveMessageC;
-  TreeRoutingP.Receive -> AMReceiverC;
-  TreeRoutingP.Voltage -> ReadVoltage;
-  TreeRoutingP.Random -> RandomC;
+  GraphRoutingP -> MainC.Boot;
+  GraphRoutingP.TimerNotification -> Timer0;
+  GraphRoutingP.TimerRefresh -> Timer1;
+  GraphRoutingP.Leds -> LedsC;
+  GraphRoutingP.Packet -> AMSenderC;
+  GraphRoutingP.AMPacket -> ActiveMessageC;
+  GraphRoutingP.AMSend -> AMSenderC;
+  GraphRoutingP.AMControl -> ActiveMessageC;
+  GraphRoutingP.Receive -> AMReceiverC;
+  GraphRoutingP.Voltage -> ReadVoltage;
+  GraphRoutingP.Random -> RandomC;
 }
 

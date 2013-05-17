@@ -1,9 +1,9 @@
  #include <Timer.h>
- #include "TreeBuilding.h"
+ #include "GraphBuilding.h"
 
-module TreeRoutingP{
+module GraphRoutingP{
 	provides{
-		interface TreeConnection;
+		interface GraphConnection;
 	}
 	uses{
 		interface Timer<TMilli> as TimerRefresh;
@@ -54,13 +54,13 @@ implementation{
 	event void AMControl.stopDone(error_t err){}
 
 	task void sendNotification(){
-		TreeBuilding* msg = (TreeBuilding*) (call Packet.getPayload(&pkt, NULL));
+		GraphBuilding* msg = (GraphBuilding*) (call Packet.getPayload(&pkt, NULL));
 		error_t error;
 		msg->seq_no = current_seq_no;
 		msg->metric = current_cost;
 /*		dbg("routing", "NOT\tSEQ\t%u\tCOST\t%u\n", current_seq_no, current_cost); */
 		if ((error = call AMSend.send(AM_BROADCAST_ADDR, &pkt,
-			sizeof(TreeBuilding))) == SUCCESS){
+			sizeof(GraphBuilding))) == SUCCESS){
 			call Leds.led2On();
 			sending = TRUE;
 		} else {
@@ -89,35 +89,35 @@ implementation{
 	}
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-		if (len == sizeof(TreeBuilding) && TOS_NODE_ID != 0){
-			TreeBuilding* treemsg = (TreeBuilding*) payload;
+		if (len == sizeof(GraphBuilding) && TOS_NODE_ID != 0){
+			GraphBuilding* routing_msg = (GraphBuilding*) payload;
 			uint16_t temp_cost;
 		#ifdef TOSSIM
-			//temp_cost = treemsg->metric + 1;
-			temp_cost = treemsg->metric + (-1*call TossimPacket.strength(msg));
+			//temp_cost = routing_msg->metric + 1;
+			temp_cost = routing_msg->metric + (-1*call TossimPacket.strength(msg));
 		#else        
-			temp_cost = treemsg->metric + call CC2420Packet.getLqi(msg);
+			temp_cost = routing_msg->metric + call CC2420Packet.getLqi(msg);
 		#endif
 			num_received++;
 			//dbg("routing","lqi from %u is %u\n", call CC2420Packet.getLqi(msg),call AMPacket.source(msg));
 			/*dbg("routing", "MSG\t%u\tSOURCE\t%u\tSEQ\t%u\tMETRIC\t%u\n",
 			num_received, call AMPacket.source(msg),
-			treemsg->seq_no, temp_cost); */
-			if (treemsg->seq_no < current_seq_no)
+			routing_msg->seq_no, temp_cost); */
+			if (routing_msg->seq_no < current_seq_no)
 				return msg;
-			if (treemsg->seq_no > current_seq_no){
-				current_seq_no = treemsg->seq_no;
+			if (routing_msg->seq_no > current_seq_no){
+				current_seq_no = routing_msg->seq_no;
 				current_parent = call AMPacket.source(msg);
-				signal TreeConnection.parentUpdate(current_parent);
+				signal GraphConnection.parentUpdate(current_parent);
 				current_cost = temp_cost;
 				dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
 				call TimerNotification.startOneShot(call Random.rand16()%500);
 			} else {
 				if (current_cost > temp_cost ||
 					call AMPacket.source(msg) == current_parent){
-					current_seq_no = treemsg->seq_no;
+					current_seq_no = routing_msg->seq_no;
 					current_parent = call AMPacket.source(msg);
-					signal TreeConnection.parentUpdate(current_parent);
+					signal GraphConnection.parentUpdate(current_parent);
 					current_cost = temp_cost;
 					dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
 					call TimerNotification.startOneShot(call Random.rand16()%500);

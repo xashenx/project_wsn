@@ -6,7 +6,7 @@ configuration DataCollectionC
 implementation
 {
   components DataCollectionP;
-  components MainC, TreeRoutingC, ActiveMessageC, LedsC;
+  components MainC, GraphRoutingC, ActiveMessageC, LedsC;
   components new TimerMilliC() as Timer0;
   components new AMSenderC(AM_DATAMSG);
   components new AMReceiverC(AM_DATAMSG);
@@ -22,7 +22,7 @@ implementation
   DataCollectionP.AMControl -> ActiveMessageC;
   DataCollectionP.Receive -> AMReceiverC;
   DataCollectionP.Random -> RandomC;
-  DataCollectionP.TreeConnection -> TreeRoutingC;
+  DataCollectionP.GraphConnection -> GraphRoutingC;
   DataCollectionP.Queue -> QueueC;
   DataCollectionP.Acks -> ActiveMessageC;
 }

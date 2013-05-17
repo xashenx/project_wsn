@@ -1,16 +1,16 @@
-#ifndef TREEBUILDING_H
-#define TREEBUILDING_H
+#ifndef GRAPHBUILDING_H
+#define GRAPHBUILDING_H
 
 enum
 {
-  AM_TREEBUILDING = 33,
+  AM_GRAPHBUILDING = 33,
   REFRESH_PERIOD = 1000,
 };
 
-typedef nx_struct TreeBuilding
+typedef nx_struct GraphBuilding
 {
   nx_uint16_t seq_no;
   nx_uint16_t metric;
-} TreeBuilding;
+} GraphBuilding;
 
 #endif

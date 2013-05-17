@@ -23,7 +23,7 @@ module DataCollectionP
     interface Receive;
     interface Random;
     interface Queue<DataMsg>;
-    interface TreeConnection;
+    interface GraphConnection;
   }
 }
 implementation
@@ -141,7 +141,7 @@ implementation
 		return msg;
 	}
 
-	event void TreeConnection.parentUpdate(uint16_t parent){
+	event void GraphConnection.parentUpdate(uint16_t parent){
 		my_parent = parent;
 		if(!updated){
 			updated = TRUE;
