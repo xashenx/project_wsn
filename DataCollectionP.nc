@@ -12,20 +12,24 @@
 
 module DataCollectionP
 {
-  uses{
-    interface Timer<TMilli> as TimerApp;
-    interface Leds;
-    interface Boot;
-    interface PacketAcknowledgements as Acks;
-    interface Packet;
-    interface AMPacket;
-    interface AMSend;
-    interface SplitControl as AMControl;
-    interface Receive;
-    interface Random;
-    interface Queue<DataMsg>;
-    interface GraphConnection;
-  }
+	provides{
+		interface DataToRouting;
+	}	
+	uses{
+		interface Timer<TMilli> as TimerSend;
+		interface Timer<TMilli> as TimerMessage;
+		interface Leds;
+		interface Boot;
+		interface PacketAcknowledgements as Acks;
+		interface Packet;
+		interface AMPacket;
+		interface AMSend;
+		interface SplitControl as AMControl;
+		interface Receive;
+		interface Random;
+		interface Queue<DataMsg>;
+		interface RoutingToData;
+	}
 }
 implementation
 {
@@ -77,10 +81,11 @@ implementation
 		call Queue.enqueue(*hello);
 	}
 
-	event void TimerApp.fired(){
-		uint16_t queueSize;
-		if(!sending)
+	event void TimerSend.fired(){
+		bool alive = TRUE;
+		if(!sending){
 			post forwardMessage();
+		}
 		else if(doRetransmission){
 		/*
 		 *	IF THE RETRANSMISSION FLAG IS SET, THEN THE PROCEDURE IS ACTIVATED
@@ -90,13 +95,17 @@ implementation
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
+	}
+
+	event void TimerMessage.fired(){
+		uint16_t queueSize;
 		if(TOS_NODE_ID != 4 && TOS_NODE_ID != 1){
 		/*
 		 *	PREVENT THE DIRECTLY CONNECTED NODES TO SPAM
 		 */
-			queueSize = call Queue.size();
+			/*queueSize = call Queue.size();
 			if(queueSize<12)
-				post enqueueHello();
+				post enqueueHello();*/
 		}
 	}
 
@@ -142,7 +151,7 @@ implementation
 		return msg;
 	}
 
-	event void GraphConnection.parentUpdate(uint16_t parent){
+	event void RoutingToData.parentUpdate(uint16_t parent){
 		my_parent = parent;
 		if(!updated){
 			updated = TRUE;
@@ -152,9 +161,28 @@ implementation
 			 */
 				post enqueueHello();
 //				if(TOS_NODE_ID == 4 || TOS_NODE_ID == 1)
-				call TimerApp.startPeriodic(((parent+4)*(80+((parent+1)*6))));
+				//call TimerSend.startPeriodic(((parent+4)*(80+((parent+1)*6))));
+				call TimerSend.startPeriodic(SEND_PERIOD);
+				call TimerMessage.startPeriodic(MESSAGE_PERIOD);
 //				call TimerApp.startPeriodic((((parent-15)%15)*80));
 			}
+		}
+	}
+
+	event bool RoutingToData.sendRequest(uint16_t mode){
+		if(mode==0){
+			// the network layer asks for sending
+			if(sending)
+				return FALSE;
+			else{
+				sending = TRUE;
+				return TRUE;
+			}
+		}else{
+			// the network layer has performed its
+			// send, the lock is released
+			sending = FALSE;
+			return TRUE;
 		}
 	}
 }
