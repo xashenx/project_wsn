@@ -1,4 +1,13 @@
- #include "GraphBuilding.h"
+/*
+ *
+ *	AUTHOR: 	FABRIZIO ZENI
+ *	STUDENT ID:	153465
+ *	FILE:		GraphRoutingC.nc
+ *	DESCRIPTION:	Network layer configuration
+ *
+ */
+
+ #include "RoutingMsg.h" 
 
 configuration GraphRoutingC
 {
@@ -13,11 +22,9 @@ implementation
   components new AMReceiverC(AM_GRAPHBUILDING);
   components RandomC;
 #ifdef TOSSIM
-  	components new DemoSensorC() as ReadVoltage;
 	components TossimActiveMessageC;
 	GraphRoutingP.TossimPacket -> TossimActiveMessageC;
 #else
-  components new VoltageC() as ReadVoltage;
   components CC2420PacketC;
   GraphRoutingP.CC2420Packet -> CC2420PacketC;
 #endif
@@ -33,7 +40,6 @@ implementation
   GraphRoutingP.AMSend -> AMSenderC;
   GraphRoutingP.AMControl -> ActiveMessageC;
   GraphRoutingP.Receive -> AMReceiverC;
-  GraphRoutingP.Voltage -> ReadVoltage;
   GraphRoutingP.Random -> RandomC;
 }
 

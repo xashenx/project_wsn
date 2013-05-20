@@ -1,5 +1,14 @@
-#ifndef DATAMSG_H
-#define DATAMSG_H
+/*
+ *
+ *	AUTHOR: 	FABRIZIO ZENI
+ *	STUDENT ID:	153465
+ *	FILE:		DataMsg.h
+ *	DESCRIPTION:	Parameters and structure of the data messages 
+ *
+ */
+
+ #ifndef DATAMSG_H
+ #define DATAMSG_H
 
 enum
 {
@@ -8,6 +17,7 @@ enum
 };
 
 typedef nx_struct DataMsg{
+	nx_uint16_t msg_id; // id number of the message
 	nx_uint16_t data;
 } DataMsg;
 

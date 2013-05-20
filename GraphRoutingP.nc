@@ -1,5 +1,15 @@
+/*
+ *
+ *	AUTHOR: 	FABRIZIO ZENI
+ *	STUDENT ID:	153465
+ *	FILE:		GraphRoutingP.nc
+ *	DESCRIPTION:	Network layer component
+ *
+ */
+
  #include <Timer.h>
- #include "GraphBuilding.h"
+ //#include "GraphBuilding.h"
+ #include "RoutingMsg.h"
 
 module GraphRoutingP{
 	provides{
@@ -20,7 +30,6 @@ module GraphRoutingP{
 	#else
 		interface TossimPacket;
 	#endif
-		interface Read<uint16_t> as Voltage;
 		interface Random;
 	}
 }
@@ -31,7 +40,9 @@ implementation{
 	uint16_t current_parent;
 	uint16_t current_cost;
   	uint16_t current_seq_no;
-	uint16_t num_received;
+	uint16_t num_received; // counter of received messages
+	RoutingMsg parents[MAX_PARENTS]; // structure array of the parents of the node
+	uint16_t active_parents; //counter of active parents
   
 	event void Boot.booted(){
 		current_parent = TOS_NODE_ID;
@@ -54,13 +65,14 @@ implementation{
 	event void AMControl.stopDone(error_t err){}
 
 	task void sendNotification(){
-		GraphBuilding* msg = (GraphBuilding*) (call Packet.getPayload(&pkt, NULL));
+		//GraphBuilding* msg = (GraphBuilding*) (call Packet.getPayload(&pkt, NULL));
+		RoutingMsg* msg = (RoutingMsg*) (call Packet.getPayload(&pkt,sizeof(RoutingMsg)));
 		error_t error;
 		msg->seq_no = current_seq_no;
 		msg->metric = current_cost;
 /*		dbg("routing", "NOT\tSEQ\t%u\tCOST\t%u\n", current_seq_no, current_cost); */
 		if ((error = call AMSend.send(AM_BROADCAST_ADDR, &pkt,
-			sizeof(GraphBuilding))) == SUCCESS){
+			sizeof(RoutingMsg))) == SUCCESS){
 			call Leds.led2On();
 			sending = TRUE;
 		} else {
@@ -89,12 +101,12 @@ implementation{
 	}
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-		if (len == sizeof(GraphBuilding) && TOS_NODE_ID != 0){
-			GraphBuilding* routing_msg = (GraphBuilding*) payload;
+		if (len == sizeof(RoutingMsg) && TOS_NODE_ID != 0){
+			RoutingMsg* routing_msg = (RoutingMsg*) payload;
 			uint16_t temp_cost;
 		#ifdef TOSSIM
-			//temp_cost = routing_msg->metric + 1;
-			temp_cost = routing_msg->metric + (-1*call TossimPacket.strength(msg));
+			temp_cost = routing_msg->metric + 1;
+			//temp_cost = routing_msg->metric + (-1*call TossimPacket.strength(msg));
 		#else        
 			temp_cost = routing_msg->metric + call CC2420Packet.getLqi(msg);
 		#endif
@@ -117,16 +129,17 @@ implementation{
 					call AMPacket.source(msg) == current_parent){
 					current_seq_no = routing_msg->seq_no;
 					current_parent = call AMPacket.source(msg);
+					parents[0].parent = current_parent;
+					parents[0].metric = temp_cost;
+					parents[0].forwarded = 11;
 					signal GraphConnection.parentUpdate(current_parent);
 					current_cost = temp_cost;
-					dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+					//dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+					dbg("routing", "parent,cost,forw: %u,%u,%u\n",parents[0].parent,parents[0].metric,parents[0].forwarded);
 					call TimerNotification.startOneShot(call Random.rand16()%500);
 				}
 			}
 		}
 		return msg;
 	}
-
-	event void Voltage.readDone(error_t result, uint16_t val){}
-
 }

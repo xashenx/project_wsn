@@ -3,6 +3,7 @@
  *	AUTHOR: 	FABRIZIO ZENI
  *	STUDENT ID:	153465
  *	FILE:		DataCollectionP.nc
+ *	DESCRIPTION:	Data layer component
  *
  */
 

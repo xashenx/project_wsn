@@ -1,4 +1,12 @@
-#include "DataMsg.h"
+ /*
+ *
+ *	AUTHOR: 	FABRIZIO ZENI
+ *	STUDENT ID:	153465
+ *	FILE:		DataCollectionC.nc
+ *	DESCRIPTION:	Data layer configuration 
+ *
+ */
+ #include "DataMsg.h"
 
 configuration DataCollectionC
 {
@@ -11,7 +19,7 @@ implementation
   components new AMSenderC(AM_DATAMSG);
   components new AMReceiverC(AM_DATAMSG);
   components RandomC;
-  components new QueueC(DataMsg, 12);
+  components new QueueC(DataMsg, 12) as DataQueue;
 
   DataCollectionP.Boot -> MainC.Boot;
   DataCollectionP.TimerApp -> Timer0;
@@ -23,7 +31,7 @@ implementation
   DataCollectionP.Receive -> AMReceiverC;
   DataCollectionP.Random -> RandomC;
   DataCollectionP.GraphConnection -> GraphRoutingC;
-  DataCollectionP.Queue -> QueueC;
+  DataCollectionP.Queue -> DataQueue;
   DataCollectionP.Acks -> ActiveMessageC;
 }
 
