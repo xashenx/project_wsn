@@ -13,5 +13,5 @@ interface RoutingToData {
 	event void parentUpdate(uint16_t parent);
 	// Routing layer asks to the data one if it can send
 	event bool sendRequest(uint16_t mode);
-
+	event bool stopData();
 }

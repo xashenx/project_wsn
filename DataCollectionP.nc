@@ -152,6 +152,8 @@ implementation
 	}
 
 	event void RoutingToData.parentUpdate(uint16_t parent){
+		//if(parent != my_parent)
+		//	post enqueueHello();
 		my_parent = parent;
 		if(!updated){
 			updated = TRUE;
@@ -184,5 +186,13 @@ implementation
 			sending = FALSE;
 			return TRUE;
 		}
+	}
+
+	event bool RoutingToData.stopData(){
+		// the next parent update will restart the timers
+		dbg("routing","stopping data transmission\n");
+		updated = FALSE;
+		call TimerSend.stop();
+		call TimerMessage.stop();
 	}
 }

@@ -66,9 +66,7 @@ implementation{
 
 	event void AMControl.startDone(error_t err){
 		if (err == SUCCESS){
-			//if (TOS_NODE_ID == 0){
 				call TimerRefresh.startPeriodic(REFRESH_PERIOD);
-			//}
 		} else {
 			call AMControl.start();
 		}
@@ -93,6 +91,34 @@ implementation{
 		}
 	}
 
+	task void sendAlive(){
+		dbg("routing","sending Alive message\n");
+	}
+
+	task void checkState(){
+		switch(parent_state){
+			case 2:
+				// the parent has not sent the comunication once
+				// let's give it another chance 
+				parent_state--;
+				break;
+			case 1: // the link does not regularly respond
+				// stop the data communications and send an Alive Message
+				// to check if it is alive or mark as dead and change parent
+				post sendAlive();
+				signal RoutingToData.stopData();
+				parent_state--;
+				break;
+			case 0: // the link to the parent is dead
+				dbg("routing","No link to my parent\n");
+				current_cost = 999;
+				break;
+			default:
+				parent_state--;
+				break;
+		}
+	}
+
 	event void TimerRefresh.fired(){
 		if(TOS_NODE_ID ==0){
 			if (!sending){
@@ -100,11 +126,7 @@ implementation{
 				post sendNotification();
 			}
 		}else{
-			if(parent_state == 0){
-				dbg("routing","No link to my parent\n");
-				current_cost = 999;
-			}
-			parent_state--;
+			post checkState();
 		}
 	}
 
@@ -142,7 +164,7 @@ implementation{
 					signal RoutingToData.parentUpdate(current_parent);
 					current_cost = temp_cost;
 					parent_state = 3;
-					dbg("routing", "PARENT\t%u\tUPDATE\t%u\n", current_parent, current_cost);
+					dbg("routing", "PARENT\t%u\tUPDATE\t%u (%u)\n", current_parent, current_cost,parent_state);
 					call TimerNotification.startOneShot(call Random.rand16()%500);				
 				}else {
  					current_seq_no = routing_msg->seq_no;
@@ -158,37 +180,9 @@ implementation{
 				signal RoutingToData.parentUpdate(current_parent);
 				current_cost = temp_cost;
 				parent_state = 3;
-				dbg("routing", "PARENT\t%u\tUPDATE\t%u\n", current_parent, current_cost);
+				dbg("routing", "PARENT\t%u\tUPDATE\t%u (%u)\n", current_parent, current_cost, parent_state);
 				call TimerNotification.startOneShot(call Random.rand16()%500);		
 			}
-			//dbg("routing","lqi from %u is %u\n", call CC2420Packet.getLqi(msg),call AMPacket.source(msg));
-			/*dbg("routing", "MSG\t%u\tSOURCE\t%u\tSEQ\t%u\tMETRIC\t%u\n",
-			num_received, call AMPacket.source(msg),
-			routing_msg->seq_no, temp_cost); */
-			/*if (routing_msg->seq_no < current_seq_no)
-				return msg;
-			if (routing_msg->seq_no > current_seq_no){
-				current_seq_no = routing_msg->seq_no;
-				current_parent = call AMPacket.source(msg);
-				signal RoutingToData.parentUpdate(current_parent);
-				current_cost = temp_cost;
-				dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
-				call TimerNotification.startOneShot(call Random.rand16()%500);
-			} else {
-				if (current_cost > temp_cost ||
-					call AMPacket.source(msg) == current_parent){
-					current_seq_no = routing_msg->seq_no;
-					current_parent = call AMPacket.source(msg);
-					parents[0].parent = current_parent;
-					parents[0].metric = temp_cost;
-					parents[0].forwarded = 11;
-					signal RoutingToData.parentUpdate(current_parent);
-					current_cost = temp_cost;
-					//dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
-					dbg("routing", "parent,cost,forw: %u,%u,%u\n",parents[0].parent,parents[0].metric,parents[0].forwarded);
-					call TimerNotification.startOneShot(call Random.rand16()%500);
-				}
-			}*/
 		}
 		return msg;
 	}
@@ -196,4 +190,6 @@ implementation{
 	event uint16_t DataToRouting.nextParent(){
 
 	}
+
+
 }
