@@ -36,6 +36,7 @@ implementation
 	bool sending;
 	bool updated;
 	bool doRetransmission;
+	uint8_t retransmissions;
 	message_t pkt;
 	uint16_t my_parent;
 
@@ -84,31 +85,33 @@ implementation
 	}
 
 	event void TimerSend.fired(){
-		if(!sending){
+		if(retransmissions>2){
+			signal DataToNetwork.isMyParentAlive();
+		} else if(!sending){
 			post forwardMessage();
-		}
-		else if(doRetransmission){
+		} else if(doRetransmission){
 		/*
 		 *	IF THE RETRANSMISSION FLAG IS SET, THEN THE PROCEDURE IS ACTIVATED
 		 */
-			DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
 			#ifdef DATA
-			dbg("data","retransmitting %u to %u\n",payload->data,my_parent);
+				DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
+				dbg("data","retransmitting %u to %u\n",payload->data,my_parent);
 			#endif
+			retransmissions++;
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
 	}
 
 	event void TimerMessage.fired(){
-		//uint16_t queueSize;
+		uint16_t queueSize;
 		//if(TOS_NODE_ID != 4 && TOS_NODE_ID != 1){
 		/*
 		 *	PREVENT THE DIRECTLY CONNECTED NODES TO SPAM
 		 */
-			/*queueSize = call Queue.size();
+			queueSize = call Queue.size();
 			if(queueSize<12)
-				post enqueueHello();*/
+				post enqueueHello();
 		//}
 	}
 
@@ -133,6 +136,7 @@ implementation
 				#endif
 				sending = FALSE;
 				doRetransmission = FALSE;
+				retransmissions = 0;
 			}
 		}else{
 		/*
@@ -167,6 +171,7 @@ implementation
 			/*
 			 *	ALL BUT THE SINK KEEP SPINNING ON TIMER TO RETRANSMIT
 			 */
+				retransmissions == 0;
 				post enqueueHello();
 				call TimerSend.startPeriodic(SEND_PERIOD);
 				call TimerMessage.startPeriodic(MESSAGE_PERIOD);

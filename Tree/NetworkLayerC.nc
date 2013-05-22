@@ -19,7 +19,7 @@ implementation
 	components DataLayerC;
 	components new TimerMilliC() as Timer0;
 	components new TimerMilliC() as Timer1;
-	components new TimerMilliC()  as Timer2;
+	components new TimerMilliC() as Timer2;
 	components new AMSenderC(AM_GRAPHBUILDING);
 	components new AMReceiverC(AM_GRAPHBUILDING);
 	components RandomC;

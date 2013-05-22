@@ -49,6 +49,7 @@ implementation{
 	message_t alive;
 	bool sending;
 	uint16_t next_parent;
+	bool change_parent;
 	uint16_t num_received; // counter of received messages
 	RoutingMsg parents[MAX_PARENTS]; // structure array of the parents of the node
 	uint16_t active_parents; //counter of active parents
@@ -63,6 +64,7 @@ implementation{
 		current_seq_no = 0;
 		num_received = 0;
 		parent_state = 999;
+		change_parent = TRUE;
 		call AMControl.start();
 	}
 
@@ -95,6 +97,7 @@ implementation{
 	}
 
 	task void sendAlive(){
+		//dbg("routing","sending Alive message\n");
 		AliveMsg* msg = (AliveMsg*)(call Packet.getPayload(&alive,sizeof(AliveMsg)));
 		error_t error;
 		msg->node = TOS_NODE_ID;
@@ -140,9 +143,7 @@ implementation{
 	event void TimerRefresh.fired(){
 		if(TOS_NODE_ID ==0){
 			if (!sending){
-				#ifdef ROUTING
-					dbg("routing","sending refresh with #%u\n",current_seq_no++);
-				#endif
+				dbg("routing","sending refresh with #%u\n",current_seq_no++);
 				post sendNotification();
 			}
 		}else{
@@ -164,17 +165,11 @@ implementation{
 		if (&pkt == msg && error == SUCCESS){
 			sending = FALSE;
 		}
-		if(&alive == msg && error == SUCCESS){
-			if(call Acks.wasAcked(msg)){
-				#ifdef ROUTING
-					dbg("routing","my Alive message was Acked!\n");
-				#endif
-				parent_state = 3;
-			}else{
-				// the link to the parent is probably down
-				signal NetworkToData.stopData();
-				current_seq_no = 0;
-			}
+		if(&alive == msg && error == SUCCESS && call Acks.wasAcked(msg)){
+			#ifdef ROUTING
+				dbg("routing","my Alive message was Acked!\n");
+			#endif
+			parent_state = 3;
 		}
 		else
 			call TimerNotification.startOneShot(call Random.rand16()%500);
@@ -196,35 +191,71 @@ implementation{
 		#endif
 			num_received++;
 			dbg("routing","received message with #%u from %u(%u)\n",temp_seq_no,temp_parent,temp_cost);
-			if (temp_seq_no < current_seq_no)
+			if(current_seq_no > temp_seq_no)
 				return msg;
-			if (temp_seq_no > current_seq_no){
+			if(current_seq_no <= temp_seq_no){
+				if(current_cost >= temp_cost || current_parent == temp_parent){
+					current_seq_no = temp_seq_no;
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing","PARENT\t%u\tUPDATE\t%u (%u)\n",current_parent,current_cost,parent_state);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);
+				}else if(parent_state == 0){
+ 					current_seq_no = temp_seq_no;
+					current_parent = temp_parent;
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);
+				}
+			}
+			/*if(current_cost > temp_cost){
+				if(temp_parent == current_parent && current_seq_no < temp_seq_no){
+					current_seq_no = temp_seq_no;
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing","PARENT\t%u\tUPDATE\t%u (%u)\n",current_parent,current_cost,parent_state);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);				
+				}else if (current_seq_no < temp_seq_no){
+ 					current_seq_no = temp_seq_no;
+					current_parent = temp_parent;
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);
+				}
+			}else if(temp_parent == current_parent && current_seq_no < temp_seq_no){
 				current_seq_no = temp_seq_no;
+				signal NetworkToData.parentUpdate(current_parent);
+				current_cost = temp_cost;
+				parent_state = 3;
+				#ifdef ROUTING
+					dbg("routing","PARENT\t%u\tUPDATE\t%u (%u)\n",current_parent,current_cost,parent_state);
+				#endif
+				call TimerNotification.startOneShot(call Random.rand16()%500);		
+			}else if(parent_state == 0 && current_seq_no < temp_seq_no){
+ 				current_seq_no = temp_seq_no;
 				current_parent = temp_parent;
 				signal NetworkToData.parentUpdate(current_parent);
 				current_cost = temp_cost;
 				parent_state = 3;
 				#ifdef ROUTING
-				dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+					dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16()%500);
-			} else {
-				if (current_cost > temp_cost ||
-					temp_parent == current_parent){
-					#ifdef ROUTING
-					if(temp_parent == current_parent)
-						dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u)\n",current_parent,current_cost,parent_state);
-					else
-						dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
-					#endif
-					current_seq_no = temp_seq_no;
-					current_parent = temp_parent;
-					signal NetworkToData.parentUpdate(current_parent);
-					current_cost = temp_cost;
-					parent_state = 3;
-					call TimerNotification.startOneShot(call Random.rand16()%500);
-				}
-			}
+			}*/
 		}
 		#ifdef RELIABILITY
 			else if(len == sizeof(AliveMsg))
@@ -234,9 +265,4 @@ implementation{
 	}
 
 	event uint16_t DataToNetwork.nextParent(){}
-
-	event bool DataToNetwork.isMyParentAlive(){
-		//post sendAlive();
-		return TRUE;
-	}
 }

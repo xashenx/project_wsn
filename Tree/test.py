@@ -72,17 +72,11 @@ def config_boot(t, nodes_count, sim_time):
            print "Node", i, "booting at", bootTime;
            t.getNode(i).bootAtTime(bootTime)          
 
-def remove_link(t, node, nodes_count):
+def remove_link(t, first_node, second_node):
     r = t.radio()
-    for i in range(nodes_count):
-        if r.connected(node, i):
-           r.remove(node,i)
-           r.remove(i,node)
-
-def prova(t, first_node, second_node):
-    r = t.radio()
-    #print("removing link from " + first_node + " to " + second_node)
+    print "Removing link from ",first_node," to ",second_node;
     r.remove(first_node,second_node)
+    print "Removing link from ",second_node," to ",second_node;
     r.remove(second_node,first_node)
 
 def simulation_loop(t, sim_time, nodes_count):
@@ -92,9 +86,9 @@ def simulation_loop(t, sim_time, nodes_count):
     while (t.time() < startup_time + sim_time * 10000000):
         t.runNextEvent()
         if t.time() > sim_time * 10000000 * 0.30 and once == 0:
-           prova(t,2,0)
-           prova(t,3,0)
-           prova(t,4,2)
+           remove_link(t,2,0)
+           remove_link(t,3,0)
+           remove_link(t,4,2)
            once = 1
 
 # Runs a simulatio for sim_time (in ms) on the network defined in topology_file
@@ -115,4 +109,4 @@ def run_simulation(sim_time, topology_file):
 
 
 # Make a call to run_simulation here
-run_simulation(95000, "topology.out")
+run_simulation(75000, "topology.out")
