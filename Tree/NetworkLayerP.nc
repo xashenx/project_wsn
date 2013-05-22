@@ -1,0 +1,227 @@
+/*
+ *
+ *	AUTHOR: 	FABRIZIO ZENI
+ *	STUDENT ID:	153465
+ *	FILE:		NetworkLayerP.nc
+ *	DESCRIPTION:	Network layer component
+ *
+ */
+
+ #include <Timer.h>
+ #include "RoutingMsg.h"
+
+module NetworkLayerP{
+	provides{
+		interface NetworkToData;
+	}
+	uses{
+		interface Timer<TMilli> as TimerRefresh;
+		interface Timer<TMilli> as TimerNotification;
+		interface Timer<TMilli> as TimerAlive;
+		interface PacketAcknowledgements as Acks;
+		interface Leds;
+		interface Boot;
+		interface Packet;
+		interface AMPacket;
+		interface AMSend;
+		interface SplitControl as AMControl;
+		interface Receive;
+	#ifndef TOSSIM
+		interface CC2420Packet;
+	#else
+		interface TossimPacket;
+	#endif
+		interface Random;
+		interface Queue<RoutingMsg>;
+		interface DataToNetwork;
+	}
+}
+
+implementation{
+	// BEGIN TREE SECTION
+	uint16_t current_parent;
+	uint16_t current_cost;
+  	uint16_t current_seq_no;
+	uint16_t self_seq_no;
+	uint16_t parent_state;
+	// END TREE SECTION
+	message_t pkt;
+	message_t alive;
+	bool sending;
+	uint16_t next_parent;
+	uint16_t num_received; // counter of received messages
+	RoutingMsg parents[MAX_PARENTS]; // structure array of the parents of the node
+	uint16_t active_parents; //counter of active parents
+	uint16_t parent_offers; // the number of parent offers received in a cycle (maybe on 2?!?)
+  
+	event void Boot.booted(){
+		current_parent = TOS_NODE_ID;
+		if(TOS_NODE_ID==0)
+			current_cost = 0;
+		else
+			current_cost = 999;
+		current_seq_no = 0;
+		num_received = 0;
+		parent_state = 999;
+		call AMControl.start();
+	}
+
+	event void AMControl.startDone(error_t err){
+		if (err == SUCCESS){
+				call TimerRefresh.startPeriodic(REFRESH_PERIOD);
+		} else {
+			call AMControl.start();
+		}
+	}
+
+	event void AMControl.stopDone(error_t err){}
+
+	task void sendNotification(){
+		//GraphBuilding* msg = (GraphBuilding*) (call Packet.getPayload(&pkt, NULL));
+		RoutingMsg* msg = (RoutingMsg*) (call Packet.getPayload(&pkt,sizeof(RoutingMsg)));
+		error_t error;
+		msg->parent = current_parent;
+		msg->seq_no = self_seq_no;
+		msg->metric = current_cost;
+/*		dbg("routing", "NOT\tSEQ\t%u\tCOST\t%u\n", current_seq_no, current_cost); */
+		if ((error = call AMSend.send(AM_BROADCAST_ADDR, &pkt,
+			sizeof(RoutingMsg))) == SUCCESS){
+			call Leds.led2On();
+			sending = TRUE;
+		} else {
+			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
+			call TimerNotification.startOneShot(call Random.rand16()%500);
+		}
+	}
+
+	task void sendAlive(){
+		//dbg("routing","sending Alive message\n");
+		AliveMsg* msg = (AliveMsg*)(call Packet.getPayload(&alive,sizeof(AliveMsg)));
+		error_t error;
+		msg->node = TOS_NODE_ID;
+		call Acks.requestAck(&alive);
+		if ((error = call AMSend.send(current_parent,&alive,sizeof(AliveMsg))) == SUCCESS){
+			#ifdef RELIABILITY
+				dbg("routing","sending alive to %u\n",current_parent);
+			#endif
+			call Leds.led2On();
+			sending = TRUE;
+		} else {
+			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
+			call TimerAlive.startOneShot(call Random.rand16()%500);
+		}
+	}
+
+	task void checkState(){
+		switch(parent_state){
+			case 2:
+				// the parent has not sent the comunication once
+				// let's give it another chance 
+				parent_state--;
+				break;
+			case 1: // the link does not regularly respond
+				// stop the data communications and send an Alive Message
+				// to check if it is alive or mark as dead and change parent
+				post sendAlive();
+				signal NetworkToData.stopData();
+				parent_state--;
+				break;
+			case 0: // the link to the parent is dead
+				#ifdef RELIABILITY
+					dbg("routing","No link to my parent\n");
+				#endif
+				current_cost = 999;
+				break;
+			default:
+				parent_state--;
+				break;
+		}
+	}
+
+	event void TimerRefresh.fired(){
+		if(TOS_NODE_ID ==0){
+			if (!sending){
+				self_seq_no++;
+				post sendNotification();
+			}
+		}else{
+			post checkState();
+		}
+	}
+
+	event void TimerNotification.fired(){
+		if (!sending)
+			post sendNotification();
+	}
+
+	event void TimerAlive.fired(){
+		if (!sending)
+			post sendAlive();
+	}
+
+	event void AMSend.sendDone(message_t* msg, error_t error){
+		if (&pkt == msg && error == SUCCESS){
+			sending = FALSE;
+		}
+		if(&alive == msg && error == SUCCESS && call Acks.wasAcked(msg)){
+			#ifdef ROUTING
+				dbg("routing","my Alive message was Acked!\n");
+			#endif
+			parent_state = 3;
+		}
+		else
+			call TimerNotification.startOneShot(call Random.rand16()%500);
+	}
+
+	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
+		if (len == sizeof(RoutingMsg) && TOS_NODE_ID != 0){
+			RoutingMsg* routing_msg = (RoutingMsg*) payload;
+			uint16_t temp_cost;
+		#ifdef TOSSIM
+			temp_cost = routing_msg->metric + 1;
+			//temp_cost = routing_msg->metric + (-1*call TossimPacket.strength(msg));
+		#else        
+			temp_cost = routing_msg->metric + call CC2420Packet.getLqi(msg);
+		#endif
+			num_received++;
+			if(current_cost > temp_cost){
+				if(call AMPacket.source(msg) == current_parent && current_seq_no < routing_msg->seq_no){
+					current_seq_no = routing_msg->seq_no;
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing", "PARENT\t%u\tUPDATE\t%u (%u)\n", current_parent, current_cost,parent_state);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);				
+				}else {
+ 					current_seq_no = routing_msg->seq_no;
+					current_parent = call AMPacket.source(msg);
+					signal NetworkToData.parentUpdate(current_parent);
+					current_cost = temp_cost;
+					parent_state = 3;
+					#ifdef ROUTING
+						dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+					#endif
+					call TimerNotification.startOneShot(call Random.rand16()%500);
+				}
+			}else if(call AMPacket.source(msg) == current_parent){
+				current_seq_no = routing_msg->seq_no;
+				signal NetworkToData.parentUpdate(current_parent);
+				current_cost = temp_cost;
+				parent_state = 3;
+				#ifdef ROUTING
+					dbg("routing", "PARENT\t%u\tUPDATE\t%u (%u)\n", current_parent, current_cost, parent_state);
+				#endif
+				call TimerNotification.startOneShot(call Random.rand16()%500);		
+			}
+		}
+		#ifdef RELIABILITY
+			else if(len == sizeof(AliveMsg))
+				dbg("routing","Alive message received from %u!\n",call AMPacket.source(msg));
+		#endif
+		return msg;
+	}
+
+	event uint16_t DataToNetwork.nextParent(){}
+}
