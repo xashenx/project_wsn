@@ -51,7 +51,7 @@ implementation{
   	uint16_t current_seq_no;
 	uint16_t next_parent;
 	uint16_t num_received; // counter of received messages
-	RoutingMsg parents[MAX_PARENTS]; // structure array of the parents of the node
+	Parent parents[MAX_PARENTS]; // structure array of the parents of the node
 	uint16_t active_parents; //counter of active parents
 	uint16_t parent_offers; // the number of parent offers received in a cycle (maybe on 2?!?)
   
@@ -141,11 +141,16 @@ implementation{
 	}
 
 	command uint16_t checkForParent(uint16_t parent){
-		uint16_t counter = 0;
-		bool found = FALSE;
-		while (!found && counter < active_parents){
-			counter++;
+		uint16_t position = 0;
+	/*	bool found = FALSE;
+		while (!found && position < active_parents){
+			if(parents[position].id == parent)
+				found = TRUE;
+			position++;
 		}
+		if (found)
+			return --position;
+		return NOT_PARENT;*/
 	}
 
 	event void TimerRefresh.fired(){
@@ -212,34 +217,59 @@ implementation{
 			#ifdef SILLY
 			dbg("routing","received message with #%u from %u(%u)\n",temp_seq_no,temp_parent,temp_cost);
 			#endif
+			check_result = call checkForParent(temp_parent);
 			if (temp_seq_no < current_seq_no)
 				return msg;
 			if (temp_seq_no > current_seq_no){
-				check_result = call checkForParent(temp_parent);
 				current_seq_no = temp_seq_no;
 				current_parent = temp_parent;
 				signal NetworkToData.parentUpdate(current_parent);
 				current_cost = temp_cost;
-				parent_state = 3;
+				parent_state = HEALTHY;
 				#ifdef ROUTING
-				dbg("routing", "SET\t\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+				dbg("routing", "NEW\tSEQNO\t%u\tCOST\t%u\n", current_parent, current_cost);
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16()%500);
 			} else {
 				if (current_cost > temp_cost ||
 					temp_parent == current_parent){
-					#ifdef ROUTING
+					// RESET THE STRUCTURE    !!! SOSTITUIRE L'INDICE, NON E' CERTO CHE SIA LO 0!!
+					active_parents = 1;
+					/*#ifdef ROUTING
 					if(temp_parent == current_parent)
 						dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u)\n",current_parent,current_cost,parent_state);
 					else
 						dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
-					#endif
-					current_seq_no = temp_seq_no;
-					current_parent = temp_parent;
-					signal NetworkToData.parentUpdate(current_parent);
-					current_cost = temp_cost;
-					parent_state = 3;
-					call TimerNotification.startOneShot(call Random.rand16()%500);
+					#endif*/
+					if (temp_parent == current_parent && current_cost == temp_cost){
+						// AN UPDATE FROM ONE OF OUR PARENT
+						// MAYBE WE CAN JUST DROP IT!
+						#ifdef ROUTING
+						//dbg("routing","USELESS\tUPDATE\t%u\n",current_parent);
+						#endif
+					}else {
+						// WE HAVE A NEW MINIMUM COST, SO WE RESET THE STRUCTURE
+						if (temp_parent == current_parent){
+							parents[0].cost = temp_cost;
+							current_cost = temp_cost;
+							#ifdef ROUTING
+							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u)\n",current_parent,current_cost,parent_state);
+							#endif
+						}else{
+							current_parent = temp_parent;
+							parents[0].cost = temp_cost;
+							parents[0].forwarded = 0;
+							parents[0].id = temp_parent;
+							signal NetworkToData.parentUpdate(current_parent);
+							current_cost = temp_cost;
+							#ifdef ROUTING
+							dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
+							#endif
+						}
+						parents[0].state = 3;
+						call TimerNotification.startOneShot(call Random.rand16()%500);
+					}
+					parents[0].state = HEALTHY;
 				}else if (current_cost == temp_cost){
 					// IN THE GRAPH TOPOLOGY ROUTING WE WILL PUT AS PARENTS
 					// NODES WITH THE SAME CURRENT_COST

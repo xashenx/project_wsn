@@ -16,6 +16,11 @@ enum
 	REFRESH_PERIOD = 10000,
 	ALIVE_PERIOD = 1000,
 	MAX_PARENTS = 5,
+	HEALTHY = 3,
+	WARNING = 2,
+	STOP = 1,
+	DEAD = 0,
+	NOT_PARENT = 99,
 };
 
 typedef nx_struct RoutingMsg{
@@ -30,17 +35,16 @@ typedef nx_struct AliveMsg{
 } AliveMsg;
 
 typedef nx_struct Parent{
-	nx_uint16_t parent;
+	nx_uint16_t id;
 	nx_uint16_t cost; // from the node to the sink
 	nx_uint16_t forwarded; // messages forwarded from the parent
 	/*
 	*	state of the link to the parent
-	*	 1: the link is ALIVE
-	*	 0: the link is on YELLOW ALERT, the data layer will still try to send DataMsg
-	*	-1: the link is on RED ALERT, the data layer will send an AliveMsg instead of a DataMsg
-	*	-2: the link is DEAD
+	*	3: the link is ALIVE
+	*	2: the link is on YELLOW ALERT, the data layer will still try to send DataMsg
+	*	1: the link is on RED ALERT, the data layer will send an AliveMsg instead of a DataMsg
+	*	0: the link is DEAD, then it can be substituted
 	*/
-	nx_int16_t state; 
-} ParentsTable;
-
+	nx_uint16_t state; 
+} Parent;
 #endif
