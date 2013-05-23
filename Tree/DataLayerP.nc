@@ -36,7 +36,6 @@ implementation
 	bool sending;
 	bool updated;
 	bool doRetransmission;
-	uint8_t retransmissions;
 	message_t pkt;
 	uint16_t my_parent;
 
@@ -85,9 +84,7 @@ implementation
 	}
 
 	event void TimerSend.fired(){
-		if(retransmissions>2){
-			signal DataToNetwork.isMyParentAlive();
-		} else if(!sending){
+		if(!sending){
 			post forwardMessage();
 		} else if(doRetransmission){
 		/*
@@ -97,7 +94,6 @@ implementation
 				DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
 				dbg("data","retransmitting %u to %u\n",payload->data,my_parent);
 			#endif
-			retransmissions++;
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
@@ -136,7 +132,6 @@ implementation
 				#endif
 				sending = FALSE;
 				doRetransmission = FALSE;
-				retransmissions = 0;
 			}
 		}else{
 		/*
@@ -171,7 +166,6 @@ implementation
 			/*
 			 *	ALL BUT THE SINK KEEP SPINNING ON TIMER TO RETRANSMIT
 			 */
-				retransmissions == 0;
 				post enqueueHello();
 				call TimerSend.startPeriodic(SEND_PERIOD);
 				call TimerMessage.startPeriodic(MESSAGE_PERIOD);

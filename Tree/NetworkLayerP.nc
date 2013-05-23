@@ -140,13 +140,14 @@ implementation{
 	event void TimerRefresh.fired(){
 		if(TOS_NODE_ID ==0){
 			if (!sending){
+				current_seq_no++;				
 				#ifdef ROUTING
-					dbg("routing","sending refresh with #%u\n",current_seq_no++);
+					dbg("routing","sending refresh with #%u\n",current_seq_no);
 				#endif
 				post sendNotification();
 			}
 		}else{
-			post checkState();
+			//post checkState();
 		}
 	}
 
@@ -173,7 +174,8 @@ implementation{
 			}else{
 				// the link to the parent is probably down
 				signal NetworkToData.stopData();
-				current_seq_no = 0;
+				current_seq_no--;
+				current_cost = 999;
 			}
 		}
 		else
@@ -195,7 +197,9 @@ implementation{
 			temp_cost = routing_msg->metric + call CC2420Packet.getLqi(msg);
 		#endif
 			num_received++;
+			#ifdef SILLY
 			dbg("routing","received message with #%u from %u(%u)\n",temp_seq_no,temp_parent,temp_cost);
+			#endif
 			if (temp_seq_no < current_seq_no)
 				return msg;
 			if (temp_seq_no > current_seq_no){
@@ -205,7 +209,7 @@ implementation{
 				current_cost = temp_cost;
 				parent_state = 3;
 				#ifdef ROUTING
-				dbg("routing", "SET\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
+				dbg("routing", "SET\t\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16()%500);
 			} else {
