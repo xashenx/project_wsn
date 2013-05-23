@@ -141,7 +141,7 @@ implementation
 				#endif
 				sending = FALSE;
 				doRetransmission = FALSE;
-				//retransmissions = 0;
+				signal DataToNetwork.messageForwarded(my_parent);
 			}
 		}else{
 		/*

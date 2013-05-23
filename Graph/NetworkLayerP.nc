@@ -80,13 +80,11 @@ implementation{
 	event void AMControl.stopDone(error_t err){}
 
 	task void sendNotification(){
-		//GraphBuilding* msg = (GraphBuilding*) (call Packet.getPayload(&pkt, NULL));
 		RoutingMsg* msg = (RoutingMsg*) (call Packet.getPayload(&pkt,sizeof(RoutingMsg)));
 		error_t error;
 		msg->parent = current_parent;
 		msg->seq_no = current_seq_no;
 		msg->metric = current_cost;
-/*		dbg("routing", "NOT\tSEQ\t%u\tCOST\t%u\n", current_seq_no, current_cost); */
 		if ((error = call AMSend.send(AM_BROADCAST_ADDR, &pkt,
 			sizeof(RoutingMsg))) == SUCCESS){
 			call Leds.led2On();
@@ -318,12 +316,22 @@ implementation{
 	}
 
 	event uint16_t DataToNetwork.nextParent(){
-		dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
-		return parents[0].id;
+		#ifdef SILLY
+			dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
+		#endif
+		next_parent = (next_parent % active_parents);
+		return parents[next_parent++].id;
 	}
 
-	event bool DataToNetwork.isMyParentAlive(){
-		//post sendAlive();
-		return TRUE;
+	event void DataToNetwork.messageForwarded(uint16_t parent){
+		uint16_t result = call checkForParent(parent);
+		if(result != NOT_PARENT){
+			//#ifdef ROUTING
+			dbg("routing","MESSAGE\tFORWARDED\tTO\t%u:\t%u\n",parents[result].id,parents[result].forwarded);
+			//#endif
+			parents[result].forwarded += 1;
+		}
+		else
+			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
 	}
 }

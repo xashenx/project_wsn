@@ -17,6 +17,6 @@ interface DataToNetwork {
 	 * The data layer asks to the network if the parent
 	 * is still alive
 	 */
-	event bool isMyParentAlive();
+	event void messageForwarded(uint16_t);
 
 }
