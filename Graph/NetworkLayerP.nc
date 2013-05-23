@@ -53,8 +53,8 @@ implementation{
 	uint16_t num_received; // counter of received messages
 	Parent parents[MAX_PARENTS]; // structure array of the parents of the node
 	uint16_t active_parents; //counter of active parents
-	uint16_t parent_offers; // the number of parent offers received in a cycle (maybe on 2?!?)
-  
+	uint16_t overload; // number of messages sent to the more ovearloaded node
+
 	event void Boot.booted(){
 		current_parent = TOS_NODE_ID;
 		if(TOS_NODE_ID==0)
@@ -243,10 +243,14 @@ implementation{
 				//
 				// SO IN BOTH CASES WE RESET THE STRUCTURE AND PUT THE NEW PARENT
 					active_parents = 1;
-					if(parent)
+					if(parent){
 						parents[0].forwarded = parents[position].forwarded;
-					else
+						overload = parents[position].forwarded;
+					}
+					else{
 						parents[0].forwarded = 0;
+						overload = 0;
+					}
 					parents[0].id = temp_parent;
 					current_cost = temp_cost;
 					parents[0].state = HEALTHY;
@@ -263,7 +267,7 @@ implementation{
 					parent){
 					if (parent && current_cost == temp_cost){
 						// AN UPDATE FROM ONE OF OUR PARENT
-						// MAYBE WE CAN JUST DROP IT!
+						// WE CAN JUST DROP IT!
 						#ifdef SILLY
 							dbg("routing","USELESS\tUPDATE\t%u\n",current_parent);
 						#endif
@@ -271,7 +275,6 @@ implementation{
 						// WE HAVE A NEW MINIMUM COST, SO WE RESET THE STRUCTURE
 						active_parents = 1;
 						if (parent){
-							//parents[0].cost = temp_cost;
 							current_cost = temp_cost;
 							#ifdef ROUTING
 							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u){%u}\n",current_parent,current_cost,parent_state,position);
@@ -283,11 +286,12 @@ implementation{
 							parents[0].id = temp_parent;
 							signal NetworkToData.parentUpdate(current_parent);
 							current_cost = temp_cost;
+							overload = 0;
 							#ifdef ROUTING
 							dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
 							#endif
 						}
-						parents[0].state = 3;
+						parents[0].state = HEALTHY;
 						call TimerNotification.startOneShot(call Random.rand16()%500);
 					}
 					parents[0].state = HEALTHY;
@@ -316,20 +320,34 @@ implementation{
 	}
 
 	event uint16_t DataToNetwork.nextParent(){
-		#ifdef SILLY
-			dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
-		#endif
+		uint16_t messages;
 		next_parent = (next_parent % active_parents);
+		if(active_parents > 1){
+			uint16_t checked = 0;
+			messages = parents[next_parent].forwarded;
+			#ifdef SILLY
+				dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
+			#endif
+			while(checked < active_parents && messages == overload){
+				next_parent = (++next_parent % active_parents);
+				messages = parents[next_parent].forwarded;
+				checked++;
+			}
+		}
 		return parents[next_parent++].id;
 	}
 
 	event void DataToNetwork.messageForwarded(uint16_t parent){
+		uint16_t messages;
 		uint16_t result = call checkForParent(parent);
 		if(result != NOT_PARENT){
+			messages = ++parents[result].forwarded;
+			if(messages > overload)
+				overload = messages;
 			//#ifdef ROUTING
 			dbg("routing","MESSAGE\tFORWARDED\tTO\t%u:\t%u\n",parents[result].id,parents[result].forwarded);
 			//#endif
-			parents[result].forwarded += 1;
+			//parents[result].forwarded += 1;
 		}
 		else
 			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");

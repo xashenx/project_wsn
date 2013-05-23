@@ -160,6 +160,14 @@ implementation
 				//dbg("data","received %u\n",((DataMsg*)payload)->data);	
 			 */
 				call Queue.enqueue(*(DataMsg*)payload);
+			#ifdef DOUBLE
+			/*
+			 *	WHEN USING THE SECOND SINK (SPERIMENTAL!)
+			 *
+			 */
+			if(TOS_NODE_ID!=6)
+				call Queue.enqueue(*(DataMsg*)payload);	
+			#endif
 			else
 				dbg("data","RECEIVED\t%u\tTHROUGH\t%u\tHOP(S)\n",((DataMsg*)payload)->data,((DataMsg*)payload)->hops);
 		}

@@ -92,6 +92,7 @@ def simulation_loop(t, sim_time, nodes_count):
     startup_time = t.time()
     remove = 0
     add = 0
+    another_add = 0
     while (t.time() < startup_time + sim_time * 10000000):
         t.runNextEvent()
         if t.time() > sim_time * 10000000 * 0.30 and remove == 0:
@@ -102,6 +103,9 @@ def simulation_loop(t, sim_time, nodes_count):
         if t.time() > sim_time * 10000000 * 0.55 and add == 0:
 	   add_link(t,3,1,-55.44)
 	   add = 1
+        if t.time() > sim_time * 10000000 * 0.60 and another_add == 0:
+	   add_link(t,2,6,-44.55)
+	   another_add = 1
 
 # Runs a simulatio for sim_time (in ms) on the network defined in topology_file
 def run_simulation(sim_time, topology_file):
