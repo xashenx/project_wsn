@@ -154,12 +154,15 @@ implementation
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
 		if (len == sizeof(DataMsg)){
-			if(TOS_NODE_ID!=0)
+			if(TOS_NODE_ID!=0){
 			/*
 			 *	ANY NODE BUT SINK SHOULD FORWARD THE MESSAGE
 				//dbg("data","received %u\n",((DataMsg*)payload)->data);	
 			 */
+				if(((DataMsg*)payload) -> data == TOS_NODE_ID)
+					dbg("data","LOOP\tDETECTED!\n");
 				call Queue.enqueue(*(DataMsg*)payload);
+			}
 			#ifdef DOUBLE
 			/*
 			 *	WHEN USING THE SECOND SINK (SPERIMENTAL!)
