@@ -36,7 +36,6 @@ typedef nx_struct AliveMsg{
 
 typedef nx_struct Parent{
 	nx_uint16_t id;
-	nx_uint16_t cost; // from the node to the sink
 	nx_uint16_t forwarded; // messages forwarded from the parent
 	/*
 	*	state of the link to the parent

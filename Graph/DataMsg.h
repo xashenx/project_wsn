@@ -20,6 +20,7 @@ enum
 typedef nx_struct DataMsg{
 	nx_uint16_t msg_id; // id number of the message
 	nx_uint16_t data;
+	nx_uint16_t hops; // number of hops performed through the network
 } DataMsg;
 
 #endif

@@ -21,7 +21,7 @@ implementation
 	components new AMSenderC(AM_DATAMSG);
 	components new AMReceiverC(AM_DATAMSG);
 	components RandomC;
-	components new QueueC(DataMsg, 12) as DataQueue;
+	components new QueueC(DataMsg, 20) as DataQueue;
 
 	DataToNetwork = DataLayerP;
 	DataLayerP.Boot -> MainC.Boot;

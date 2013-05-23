@@ -142,7 +142,7 @@ implementation{
 
 	command uint16_t checkForParent(uint16_t parent){
 		uint16_t position = 0;
-	/*	bool found = FALSE;
+		bool found = FALSE;
 		while (!found && position < active_parents){
 			if(parents[position].id == parent)
 				found = TRUE;
@@ -150,7 +150,7 @@ implementation{
 		}
 		if (found)
 			return --position;
-		return NOT_PARENT;*/
+		return NOT_PARENT;
 	}
 
 	event void TimerRefresh.fired(){
@@ -204,7 +204,8 @@ implementation{
 			uint16_t temp_parent;
 			uint16_t temp_seq_no;
 			uint16_t temp_cost;
-			uint16_t check_result;
+			uint16_t position;
+			bool parent;
 		#ifdef TOSSIM
 			temp_cost = routing_msg->metric + 1;
 			temp_parent = call AMPacket.source(msg);
@@ -217,53 +218,75 @@ implementation{
 			#ifdef SILLY
 			dbg("routing","received message with #%u from %u(%u)\n",temp_seq_no,temp_parent,temp_cost);
 			#endif
-			check_result = call checkForParent(temp_parent);
+			position = call checkForParent(temp_parent);
+			if(position != NOT_PARENT)
+				parent = TRUE;
+			else
+				position = 0;
+
 			if (temp_seq_no < current_seq_no)
 				return msg;
 			if (temp_seq_no > current_seq_no){
+				if(current_cost == temp_cost){
+					if(!parent && active_parents < MAX_PARENTS){
+					// IF A NODE ARRIVES AS FIRST AND IS NOT AMONG THE
+					// PARENTS, WE PUT IT INTO THE STRUCTURE, WITHOUT
+					// RESETTING IT
+						parents[active_parents].id = temp_parent;
+						parents[active_parents].state = HEALTHY;
+						parents[active_parents].forwarded = 0;
+						active_parents++;
+					}
+				}else{
+				// REACHING THE NODE AS FIRST WITH A SMALLER COST IS COMMON
+				// BUT HERE EVEN A COMMUNICATION WITH A GREATER COST IT TAKEN
+				// INTO CONSIDERATION, BECAUSE IF IT HAS ARRIVED AS FIRST,
+				// MAYBE THE FORMER PARENTS ARE NOT ABLE TO COMMUNICATE ANYMORE
+				//
+				// SO IN BOTH CASES WE RESET THE STRUCTURE AND PUT THE NEW PARENT
+					active_parents = 1;
+					if(parent)
+						parents[0].forwarded = parents[position].forwarded;
+					else
+						parents[0].forwarded = 0;
+					parents[0].id = temp_parent;
+					current_cost = temp_cost;
+					parents[0].state = HEALTHY;
+					signal NetworkToData.parentUpdate(temp_parent);
+				}
 				current_seq_no = temp_seq_no;
-				current_parent = temp_parent;
-				signal NetworkToData.parentUpdate(current_parent);
 				current_cost = temp_cost;
-				parent_state = HEALTHY;
 				#ifdef ROUTING
-				dbg("routing", "NEW\tSEQNO\t%u\tCOST\t%u\n", current_parent, current_cost);
+				dbg("routing", "NEW\tSEQNO\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16()%500);
 			} else {
 				if (current_cost > temp_cost ||
-					temp_parent == current_parent){
-					// RESET THE STRUCTURE    !!! SOSTITUIRE L'INDICE, NON E' CERTO CHE SIA LO 0!!
-					active_parents = 1;
-					/*#ifdef ROUTING
-					if(temp_parent == current_parent)
-						dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u)\n",current_parent,current_cost,parent_state);
-					else
-						dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
-					#endif*/
-					if (temp_parent == current_parent && current_cost == temp_cost){
+					parent){
+					if (parent && current_cost == temp_cost){
 						// AN UPDATE FROM ONE OF OUR PARENT
 						// MAYBE WE CAN JUST DROP IT!
-						#ifdef ROUTING
-						//dbg("routing","USELESS\tUPDATE\t%u\n",current_parent);
+						#ifdef SILLY
+							dbg("routing","USELESS\tUPDATE\t%u\n",current_parent);
 						#endif
 					}else {
 						// WE HAVE A NEW MINIMUM COST, SO WE RESET THE STRUCTURE
-						if (temp_parent == current_parent){
-							parents[0].cost = temp_cost;
+						active_parents = 1;
+						if (parent){
+							//parents[0].cost = temp_cost;
 							current_cost = temp_cost;
 							#ifdef ROUTING
-							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u)\n",current_parent,current_cost,parent_state);
+							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u){%u}\n",current_parent,current_cost,parent_state,position);
 							#endif
 						}else{
 							current_parent = temp_parent;
-							parents[0].cost = temp_cost;
+							//parents[0].cost = temp_cost;
 							parents[0].forwarded = 0;
 							parents[0].id = temp_parent;
 							signal NetworkToData.parentUpdate(current_parent);
 							current_cost = temp_cost;
 							#ifdef ROUTING
-							dbg("routing","SET\tPARENT\t%u\tCOST\t%u\n",current_parent,current_cost);
+							dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
 							#endif
 						}
 						parents[0].state = 3;
@@ -273,7 +296,17 @@ implementation{
 				}else if (current_cost == temp_cost){
 					// IN THE GRAPH TOPOLOGY ROUTING WE WILL PUT AS PARENTS
 					// NODES WITH THE SAME CURRENT_COST
-
+					dbg("routing","CHECK\tPARENT\t%u\tSAME\t%u{%u}\n",temp_parent,temp_cost,position);
+					/*if(TOS_NODE_ID==6 && temp_parent == 3){
+						current_parent = temp_parent;
+						signal NetworkToData.parentUpdate(current_parent);
+					}*/
+					if(active_parents<MAX_PARENTS){
+						parents[active_parents].id = temp_parent;
+						parents[active_parents].state = HEALTHY;
+						parents[active_parents].forwarded = 0;
+						active_parents++;
+					}
 				}
 			}
 		}
@@ -284,7 +317,10 @@ implementation{
 		return msg;
 	}
 
-	event uint16_t DataToNetwork.nextParent(){}
+	event uint16_t DataToNetwork.nextParent(){
+		dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
+		return parents[0].id;
+	}
 
 	event bool DataToNetwork.isMyParentAlive(){
 		//post sendAlive();

@@ -68,8 +68,10 @@ implementation
 			*toDeliver = payload;
 			call Acks.requestAck(&pkt);
 			sending = TRUE;
+			toDeliver -> hops += 1;// toDeliver->hops+1;
+			my_parent = signal DataToNetwork.nextParent();
 			#ifdef DATA
-				dbg("data","sending %u to %u\n",toDeliver->data,my_parent);
+				dbg("data","SENDING\t%u\tTO\t%u\n",toDeliver->data,my_parent);
 			#endif
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
@@ -79,8 +81,10 @@ implementation
 	/*
 	 *	SEND A DUMMY MESSAGE CONTAINING THE ID OF THE ORIGIN
 	 */
-		DataMsg* hello = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
+	 	message_t helloMsg;
+		DataMsg* hello = (DataMsg*)(call Packet.getPayload(&helloMsg,sizeof(DataMsg)));
 		hello -> data = TOS_NODE_ID;
+		hello -> hops = 0;
 		call Queue.enqueue(*hello);
 	}
 
@@ -96,7 +100,7 @@ implementation
 		 */
 			#ifdef DATA
 				DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
-				dbg("data","retransmitting %u to %u\n",payload->data,my_parent);
+				dbg("data","RESEND\t%u\tTO\t%u\n",payload->data,my_parent);
 			#endif
 			//retransmissions++;
 			call Acks.requestAck(&pkt);
@@ -111,7 +115,7 @@ implementation
 		 *	PREVENT THE DIRECTLY CONNECTED NODES TO SPAM
 		 */
 			queueSize = call Queue.size();
-			if(queueSize<12)
+			if(queueSize<20)
 				post enqueueHello();
 		//}
 	}
@@ -133,7 +137,7 @@ implementation
 			 */
 			 	#ifdef DATA
 				if(doRetransmission)
-					dbg("data","retransmission successfull on %u\n",payload->data);
+					dbg("data","RESEND OF\t%u\tSUCCESSFULL\n",payload->data);
 				#endif
 				sending = FALSE;
 				doRetransmission = FALSE;
@@ -157,7 +161,7 @@ implementation
 			 */
 				call Queue.enqueue(*(DataMsg*)payload);
 			else
-				dbg("data","received %u\n",((DataMsg*)payload)->data);
+				dbg("data","RECEIVED\t%u\tTHROUGH\t%u\tHOP(S)\n",((DataMsg*)payload)->data,((DataMsg*)payload)->hops);
 		}
 		return msg;
 	}
