@@ -64,14 +64,14 @@ def load_noise(t, nodes_count):
 # Configures each node to boot at a random time
 def config_boot(t, nodes_count, sim_time):
     for i in range(0, nodes_count):
-        if (i!=7):
+#        if (i!=7):
            bootTime = random.randint(1, 1000000)
            print "Node", i, "booting at", bootTime;
            t.getNode(i).bootAtTime(bootTime)
-        else:
-           bootTime = int(sim_time * 10000000 * 0.75)
-           print "Node", i, "booting at", bootTime;
-           t.getNode(i).bootAtTime(bootTime)          
+#        else:
+ #          bootTime = int(sim_time * 10000000 * 0.75)
+  #         print "Node", i, "booting at", bootTime;
+   #        t.getNode(i).bootAtTime(bootTime)          
 
 def remove_link(t, first_node, second_node):
     r = t.radio()
@@ -95,17 +95,17 @@ def simulation_loop(t, sim_time, nodes_count):
     another_add = 0
     while (t.time() < startup_time + sim_time * 10000000):
         t.runNextEvent()
-        if t.time() > sim_time * 10000000 * 0.30 and remove == 0:
-           remove_link(t,2,0)
-           remove_link(t,3,0)
-           remove_link(t,4,2)
-           remove = 1
-        if t.time() > sim_time * 10000000 * 0.55 and add == 0:
-	   add_link(t,3,1,-55.44)
-	   add = 1
-        if t.time() > sim_time * 10000000 * 0.60 and another_add == 0:
-	   add_link(t,2,6,-44.55)
-	   another_add = 1
+#        if t.time() > sim_time * 10000000 * 0.30 and remove == 0:
+ #          remove_link(t,2,0)
+  #         remove_link(t,3,0)
+   #        remove_link(t,4,2)
+    #       remove = 1
+     #   if t.time() > sim_time * 10000000 * 0.55 and add == 0:
+#	   add_link(t,3,1,-55.44)
+#	   add = 1
+ #       if t.time() > sim_time * 10000000 * 0.60 and another_add == 0:
+#	   add_link(t,2,6,-44.55)
+#	   another_add = 1
 
 # Runs a simulatio for sim_time (in ms) on the network defined in topology_file
 def run_simulation(sim_time, topology_file):

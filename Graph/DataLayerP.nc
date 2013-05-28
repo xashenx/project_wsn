@@ -35,8 +35,9 @@ implementation
 {
 	bool sending;
 	bool updated;
+	#ifndef BESTEFFORT
 	bool doRetransmission;
-	//uint8_t retransmissions;
+	#endif
 	message_t pkt;
 	uint16_t my_parent;
 
@@ -44,7 +45,9 @@ implementation
 		call AMControl.start();
 		sending = FALSE;
 		updated = FALSE;
+		#ifndef BESTEFFORT
 		doRetransmission = FALSE;
+		#endif
 	}
 
 	event void AMControl.startDone(error_t err){
@@ -94,7 +97,9 @@ implementation
 		} else*/ 
 		if(!sending){
 			post forwardMessage();
-		} else if(doRetransmission){
+		} 
+		#ifndef BESTEFFORT
+		else if(doRetransmission){
 		/*
 		 *	IF THE RETRANSMISSION FLAG IS SET, THEN THE PROCEDURE IS ACTIVATED
 		 */
@@ -102,10 +107,10 @@ implementation
 				DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
 				dbg("data","RESEND\t%u\tTO\t%u\n",payload->data,my_parent);
 			#endif
-			//retransmissions++;
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
+		#endif
 	}
 
 	event void TimerMessage.fired(){
@@ -125,6 +130,7 @@ implementation
 			DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
 		#endif
 		if (&pkt == msg && error == SUCCESS){
+			#ifndef BESTEFFORT
 			if(!call Acks.wasAcked(msg)){
 			/*
 			 *	CHECKS IF THE MESSAGE WAS ACKED
@@ -139,16 +145,20 @@ implementation
 				if(doRetransmission)
 					dbg("data","RESEND OF\t%u\tSUCCESSFULL\n",payload->data);
 				#endif
-				sending = FALSE;
 				doRetransmission = FALSE;
+			#endif
+				sending = FALSE;
 				signal DataToNetwork.messageForwarded(my_parent);
+		#ifndef BESTEFFORT
 			}
+
 		}else{
 		/*
 		 *	THE TRANSMISSION WAS NOT SUCCESSFULL, SO RETRANSMISSION IS NECESSARY
 		 */
 			doRetransmission = TRUE;
 			//dbg("data","failed transmission");
+		#endif
 		}
 	}
 
@@ -172,7 +182,7 @@ implementation
 				call Queue.enqueue(*(DataMsg*)payload);	
 			#endif
 			else
-				dbg("data","RECEIVED\t%u\tTHROUGH\t%u\tHOP(S)\n",((DataMsg*)payload)->data,((DataMsg*)payload)->hops);
+				dbg("data","RECEIVED\t%u\tTHROUGH\t\t%u\tHOP(S)\n",((DataMsg*)payload)->data,((DataMsg*)payload)->hops);
 		}
 		return msg;
 	}
