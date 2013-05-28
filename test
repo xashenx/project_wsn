@@ -1,0 +1,53 @@
+#!/bin/bash    
+# @author Fabrizio Zeni
+
+# $1: mode of the test (e.g. Normal, Best Effort, ..)
+# $2: number of sequential tests
+# $3: number of nodes
+# $4: name of the test
+# $5: python script to run the test
+args="$@"
+
+
+# checks the parameter for the compilation
+
+cd Graph
+
+if [ $1 = "Skip" ]; then
+	echo SKIPPING COMPILATION
+elif [ $1 = "Normal" ]; then
+	echo COMPILING WITH NORMAL PARAMETERS
+	make micaz sim
+elif [ $1 = "Best" ]; then
+	echo COMPILING WITH BEST EFFORT PARAMETERS
+	make micaz sim -f Best
+else
+	echo ERROR
+fi
+
+
+for ((i=0;i<$2;i++)); do
+	echo RUNNING SIMULATION \#$((i+1))
+	python $5.py > ../executionOutput
+	for ((j=0;j<$3;j++)); do
+		cat ../executionOutput | grep -i "0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
+	done
+	# rm executionOutput 
+done
+
+cd ..
+
+if [ ! -d "results/$5" ]; then
+	mkdir -p results/$5
+fi
+
+for ((i=0;i<$3;i++)); do
+	if [ ! -e "results/$5/$((i+1))" ]; then
+		awk -f statistics.awk results/$((i+1)).out name=$4 top=yes > results/$5/$((i+1))
+	else
+		awk -f statistics.awk results/$((i+1)).out name=$4 >> results/$5/$((i+1))
+	fi
+done
+# rm results/*.out
+
+exit 0
