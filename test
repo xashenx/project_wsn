@@ -27,7 +27,7 @@ cd Graph
 
 if [[ $# != 6 && $# != 5 ]]; then
 	echo ERROR! Some arguments are missing! $#
-	echo USAGE: ./test compilation_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
+	echo USAGE: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
 	echo TIP: for more details type './test help'
 	exit 0
 elif [[ $1 = "normal" && $6 = "compile" ]]; then
@@ -38,59 +38,80 @@ elif [[ $1 = "best" && $6 = "compile" ]]; then
 	make micaz sim -f Best
 fi
 
-if [ ! -d "../results" ]; then
-	mkdir ../results
+######### CHECKS ON THE DIRECTORY STRUCTURE
+
+## IF THE DIRECTORY FOR THE TEST SCRIPT IS EXISTENT, CREATE IT
+
+if [ ! -d "../results/$5" ]; then
+	mkdir -p ../results/$5
 fi
 
-# checks if the test summary files exists
+## IF THE SUMMARY OF THE TEST DOES NOT EXISTS, CREATE IT
 
-if [ ! -e "../results/testsDetails.csv" ]; then
-	echo -e "NAME\tSCRIPT\tSIMULATIONS\tDATE" > ../results/testsDetails.csv
+if [ ! -e "../results/summary.csv" ]; then
+	echo -e "NAME\tMODE\tSCRIPT\tSIMULATIONS\tDATE" >> ../results/summary.csv
 fi
+## PUT THE DETAILS OF THE CURRENT TEST IN THE SUMMARY
+echo -e "$4\t$1\t$5.py\t$2\t$(date +"%m-%d-%Y  %T")" >> ../results/summary.csv
 
-	echo -e "$4\t$5.py\t$2\t$(date +"%m-%d-%Y  %T")" >> ../results/testsDetails.csv
+labels=""
+for ((i=0;i<$3;i++)); do
+	if [ $i = 0 ]; then
+		labels=NAME\\t0\\t1
+	else
+		labels=$labels\\t$((i+1))
+	fi
+done
+
+### START OF THE TESTS
 
 for ((i=0;i<$2;i++)); do
 	echo RUNNING SIMULATION \#$((i+1))
+	## STORE THE OUTPUT OF THE SIMULATION IN A TEMP FILE
 	python $5.py > ../executionOutput
 	for ((j=0;j<$3;j++)); do
+		## PUT THE # OF MESSAGES WHICH REACHED THE SINK DIVIDED BY NODE
 		cat ../executionOutput | grep -i "0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
-		labels=$labels
-		if [ $j = 0 ]; then
-			labels=1
-		else
-			labels=$labels\t$((j+1))
-		fi
-		prova=""
-		for ((k=0;k<$3;k++)); do
+		for ((k=0;k<$(($3+1));k++)); do
+			## SAVES THE MESSAGES FORWARDED FROM EACH NODE DIVIDED BY PARENT
 			if [ $k = 0 ]; then
-				prova=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "1:")
+				prova=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
 			else
-				prova=$prova\\t$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$((k+1)):")
+				prova=$prova\\t$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
 			fi
+			cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:" >> ../results/$((j+1))_$k.out
 		done
-		if [ ! -e "../results/$5/forward_$((k+1)).csv" ]; then
-			echo -e $labels > ../results/$5/forward_$((j+1)).csv
-		fi
-		echo -e $prova >> ../results/$5/forward_$((j+1)).csv
+		echo -e $prova >> ../results/forw_$((j+1)).out
 	done
+	#if [ ! -e "../results/$5/forward_$((j+1)).csv" ]; then
+	#	echo -e $labels >> ../results/$5/forward_$((j+1)).csv
+	#fi
+	#echo -e $prova >> ../results/$5/forward_$((j+1)).csv
+	#echo ${forwarded[1]}
+	#rm ../executionOutput
 done
 
 cd ..
 
-rm executionOutput
-
-if [ ! -d "results/$5" ]; then
-	mkdir -p results/$5
-fi
-
 for ((i=0;i<$3;i++)); do
-	if [ ! -e "results/$5/$((i+1)).csv" ]; then
-		awk -f statistics.awk results/$((i+1)).out name=$4 top=yes > results/$5/arrived_$((i+1)).csv
+	## MAKES STATISTICAL ANALYSIS OVER THE DATA GATHERED DURING THE SIMULATIONS
+	if [ ! -e "results/$5/arrived_$((i+1)).csv" ]; then
+		awk -v name=$4 -v top=yes -f statistics.awk results/$((i+1)).out >> results/$5/arrived_$((i+1)).csv
 	else
-		awk -f statistics.awk results/$((i+1)).out name=$4 >> results/$5/arrived_$((i+1)).csv
+		awk -v name=$4 -f statistics.awk results/$((i+1)).out >> results/$5/arrived_$((i+1)).csv
 	fi
+	if [ ! -e "results/$5/forwarded_$((i+1)).csv" ]; then
+		echo -e $labels >> results/$5/forwarded_$((i+1)).csv
+	fi
+	for ((j=0;j<$3;j++)); do
+		if [ $j = 0 ]; then
+			forw[$((i+1))]=$4\\t$(awk -v COL=1 -f mean.awk results/forw_$((i+1)).out)
+			forw[$((i+1))]=${forw[$((i+1))]}\\t$(awk -v COL=2 -f mean.awk results/forw_$((i+1)).out)
+		else
+			forw[$((i+1))]=${forw[$((i+1))]}\\t$(awk -v COL=$((j+2)) -f mean.awk results/forw_$((i+1)).out)
+		fi
+	done
+	echo -e ${forw[$((i+1))]} >> results/$5/forwarded_$((i+1)).csv
 done
 rm results/*.out
-
 exit 0

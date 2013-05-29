@@ -24,11 +24,12 @@ END{
 		var2+=(mean-a[i])^2;
         #printf("%s:%s:%s:%s\n",a[i],a[i]^2,mean-a[i],var2);
 	}
-    var2=var2/c;
+	var2=var2/c;
 	#printf("mean: %s\n", mean);
 	#printf("variance: %s\n",var);
 	#printf("variance2: %s\n",var2/c);
 	#printf("standard deviation: %s\n", sqrt(var));
-    printf("TEST\tMIN\tMAX\tMEAN\tVAR\tS.DEV\n");
-    printf("%s\t%s\t%s\t%s\t%s\t%s\n",name,min,max,mean,var2,sqrt(var2));
+	if(top == "yes")
+		printf("TEST\tMIN\tMAX\tMEAN\tVAR\tS.DEV\n");
+	printf("%s\t%s\t%s\t%.2f\t%.2f\t%.2f\n",name,min,max,mean,var2,sqrt(var2));
 }
