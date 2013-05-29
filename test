@@ -6,48 +6,91 @@
 # $3: number of nodes
 # $4: name of the test
 # $5: python script to run the test
+# $6: compile request
 args="$@"
 
-
 # checks the parameter for the compilation
+clear
+
+if [[ $# = 1 && $1 = "help" ]] ; then
+	echo -e "\nSCRIPT CALL FORMAT: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]"
+	echo -e "\nPARAMETERS INFORMATION\n"
+	echo -e "test_mode:"
+	echo -e "\tnormal:\t\tthe script will execute the simulations with the normal version"
+	echo -e "\tbest:\t\tthe script will execute the simulations with the best effort version"
+	echo -e "\nname_of_test:\t\tthis will be used as label into the results files"
+	echo -e "\npython_script_name:\tthe name of the script to use, without extension\n"
+	exit 0
+fi
 
 cd Graph
 
-if [ $1 = "Skip" ]; then
-	echo SKIPPING COMPILATION
-elif [ $1 = "Normal" ]; then
+if [[ $# != 6 && $# != 5 ]]; then
+	echo ERROR! Some arguments are missing! $#
+	echo USAGE: ./test compilation_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
+	echo TIP: for more details type './test help'
+	exit 0
+elif [[ $1 = "normal" && $6 = "compile" ]]; then
 	echo COMPILING WITH NORMAL PARAMETERS
 	make micaz sim
-elif [ $1 = "Best" ]; then
+elif [[ $1 = "best" && $6 = "compile" ]]; then
 	echo COMPILING WITH BEST EFFORT PARAMETERS
 	make micaz sim -f Best
-else
-	echo ERROR
 fi
 
+if [ ! -d "../results" ]; then
+	mkdir ../results
+fi
+
+# checks if the test summary files exists
+
+if [ ! -e "../results/testsDetails.csv" ]; then
+	echo -e "NAME\tSCRIPT\tSIMULATIONS\tDATE" > ../results/testsDetails.csv
+fi
+
+	echo -e "$4\t$5.py\t$2\t$(date +"%m-%d-%Y  %T")" >> ../results/testsDetails.csv
 
 for ((i=0;i<$2;i++)); do
 	echo RUNNING SIMULATION \#$((i+1))
 	python $5.py > ../executionOutput
 	for ((j=0;j<$3;j++)); do
 		cat ../executionOutput | grep -i "0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
+		labels=$labels
+		if [ $j = 0 ]; then
+			labels=1
+		else
+			labels=$labels\t$((j+1))
+		fi
+		prova=""
+		for ((k=0;k<$3;k++)); do
+			if [ $k = 0 ]; then
+				prova=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "1:")
+			else
+				prova=$prova\\t$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$((k+1)):")
+			fi
+		done
+		if [ ! -e "../results/$5/forward_$((k+1)).csv" ]; then
+			echo -e $labels > ../results/$5/forward_$((j+1)).csv
+		fi
+		echo -e $prova >> ../results/$5/forward_$((j+1)).csv
 	done
-	# rm executionOutput 
 done
 
 cd ..
+
+rm executionOutput
 
 if [ ! -d "results/$5" ]; then
 	mkdir -p results/$5
 fi
 
 for ((i=0;i<$3;i++)); do
-	if [ ! -e "results/$5/$((i+1))" ]; then
-		awk -f statistics.awk results/$((i+1)).out name=$4 top=yes > results/$5/$((i+1))
+	if [ ! -e "results/$5/$((i+1)).csv" ]; then
+		awk -f statistics.awk results/$((i+1)).out name=$4 top=yes > results/$5/arrived_$((i+1)).csv
 	else
-		awk -f statistics.awk results/$((i+1)).out name=$4 >> results/$5/$((i+1))
+		awk -f statistics.awk results/$((i+1)).out name=$4 >> results/$5/arrived_$((i+1)).csv
 	fi
 done
-# rm results/*.out
+rm results/*.out
 
 exit 0

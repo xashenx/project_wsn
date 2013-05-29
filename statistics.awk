@@ -29,6 +29,6 @@ END{
 	#printf("variance: %s\n",var);
 	#printf("variance2: %s\n",var2/c);
 	#printf("standard deviation: %s\n", sqrt(var));
-    printf("TEST\t\tMIN\tMAX\tMEAN\tVAR\tS.DEV\n");
-    printf("%s\t\t%s\t%s\t%s\t%s\t%s\n",name,min,max,mean,var2,sqrt(var2));
+    printf("TEST\tMIN\tMAX\tMEAN\tVAR\tS.DEV\n");
+    printf("%s\t%s\t%s\t%s\t%s\t%s\n",name,min,max,mean,var2,sqrt(var2));
 }
