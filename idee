@@ -1,1 +1,4 @@
 1) bilanciare il routing valutando il traffico passato tramite ogni padre
+	provare anche controllando il l'occupazione della coda del padre!
+2) per aumentare l'efficienza del routing, impostare un timer che fa broadcast del
+	messaggio di routing

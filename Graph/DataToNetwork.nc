@@ -18,5 +18,7 @@ interface DataToNetwork {
 	 * is still alive
 	 */
 	event void messageForwarded(uint16_t);
-
+#ifdef REMOVEPARENT
+	event void removeParent(uint16_t);
+#endif
 }

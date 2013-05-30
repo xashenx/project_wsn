@@ -84,7 +84,7 @@ def add_link(t, first_node, second_node,value):
     r = t.radio()
     print "Adding link from ",first_node," to ",second_node;
     r.add(first_node,second_node,value)
-    print "Adding link from ",second_node," to ",second_node;
+    print "Adding link from ",second_node," to ",first_node;
     r.add(second_node,first_node,value)
 
 def simulation_loop(t, sim_time, nodes_count):

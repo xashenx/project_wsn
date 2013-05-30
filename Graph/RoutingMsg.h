@@ -14,6 +14,7 @@ enum
 {
 	AM_GRAPHBUILDING = 33,
 	REFRESH_PERIOD = 10000,
+//	REFRESH_PERIOD = 300000,
 	ALIVE_PERIOD = 1000,
 	MAX_PARENTS = 10,
 	HEALTHY = 3,
@@ -33,6 +34,13 @@ typedef nx_struct RoutingMsg{
 typedef nx_struct AliveMsg{
 	nx_uint16_t node;
 } AliveMsg;
+
+typedef nx_struct GenericMsg{
+	nx_uint16_t code;
+	/*
+	 *	0: the sending node has no parents, so force the others to remove him
+	 */
+} GenericMsg;
 
 typedef nx_struct Parent{
 	nx_uint16_t id;

@@ -37,6 +37,9 @@ implementation
 	bool updated;
 	#ifndef BESTEFFORT
 	bool doRetransmission;
+	#ifdef REMOVEPARENT
+	uint16_t tries;
+	#endif
 	#endif
 	message_t pkt;
 	uint16_t my_parent;
@@ -47,6 +50,9 @@ implementation
 		updated = FALSE;
 		#ifndef BESTEFFORT
 		doRetransmission = FALSE;
+		#ifdef REMOVEPARENT
+		tries = 0;
+		#endif
 		#endif
 	}
 
@@ -92,9 +98,13 @@ implementation
 	}
 
 	event void TimerSend.fired(){
-		/*if(retransmissions>2){
-			signal DataToNetwork.isMyParentAlive();
-		} else*/ 
+		#ifdef REMOVEPARENT
+		if(tries>2){
+			dbg("data","removing parent from dataL: %u\n",my_parent);
+			signal DataToNetwork.removeParent(my_parent);
+			my_parent = signal DataToNetwork.nextParent();
+		}
+		#endif
 		if(!sending){
 			post forwardMessage();
 		} 
@@ -109,6 +119,9 @@ implementation
 			#endif
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
+			#ifdef REMOVEPARENT
+			tries++;
+			#endif
 		}
 		#endif
 	}
@@ -146,6 +159,9 @@ implementation
 					dbg("data","RESEND OF\t%u\tSUCCESSFULL\n",payload->data);
 				#endif
 				doRetransmission = FALSE;
+				#ifdef REMOVEPARENT
+				tries = 0;
+				#endif
 			#endif
 				sending = FALSE;
 				signal DataToNetwork.messageForwarded(my_parent);
@@ -193,6 +209,10 @@ implementation
 		my_parent = parent;
 		if(!updated){
 			updated = TRUE;
+			sending = FALSE;
+			#ifdef REMOVEPARENT
+			tries = 0;
+			#endif
 			if(TOS_NODE_ID!=0){
 			/*
 			 *	ALL BUT THE SINK KEEP SPINNING ON TIMER TO RETRANSMIT
@@ -228,6 +248,10 @@ implementation
 			dbg("data","stopping data transmission\n");
 		#endif
 		updated = FALSE;
+		sending = TRUE;
+		#ifndef BESTEFFORT
+		doRetransmission = FALSE;
+		#endif
 		call TimerSend.stop();
 		call TimerMessage.stop();
 		return TRUE;

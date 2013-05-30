@@ -42,10 +42,9 @@ module NetworkLayerP{
 implementation{
 	// BEGIN TREE SECTION
 	uint16_t current_parent;
-	uint16_t parent_state;
 	// END TREE SECTION
+	message_t message;
 	message_t pkt;
-	message_t alive;
 	bool sending;
 	uint16_t current_cost;
   	uint16_t current_seq_no;
@@ -65,7 +64,6 @@ implementation{
 		}
 		current_seq_no = 0;
 		num_received = 0;
-		parent_state = 999;
 		call AMControl.start();
 	}
 
@@ -95,49 +93,6 @@ implementation{
 		}
 	}
 
-	task void sendAlive(){
-		AliveMsg* msg = (AliveMsg*)(call Packet.getPayload(&alive,sizeof(AliveMsg)));
-		error_t error;
-		msg->node = TOS_NODE_ID;
-		call Acks.requestAck(&alive);
-		if ((error = call AMSend.send(current_parent,&alive,sizeof(AliveMsg))) == SUCCESS){
-			#ifdef RELIABILITY
-				dbg("routing","sending alive to %u\n",current_parent);
-			#endif
-			call Leds.led2On();
-			sending = TRUE;
-		} else {
-			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
-			call TimerAlive.startOneShot(call Random.rand16()%500);
-		}
-	}
-
-	task void checkState(){
-		switch(parent_state){
-			case 2:
-				// the parent has not sent the comunication once
-				// let's give it another chance 
-				parent_state--;
-				break;
-			case 1: // the link does not regularly respond
-				// stop the data communications and send an Alive Message
-				// to check if it is alive or mark as dead and change parent
-				post sendAlive();
-				signal NetworkToData.stopData();
-				parent_state--;
-				break;
-			case 0: // the link to the parent is dead
-				#ifdef RELIABILITY
-					dbg("routing","No link to my parent\n");
-				#endif
-				current_cost = 999;
-				break;
-			default:
-				parent_state--;
-				break;
-		}
-	}
-
 	command uint16_t checkForParent(uint16_t parent){
 		uint16_t position = 0;
 		bool found = FALSE;
@@ -160,9 +115,9 @@ implementation{
 				#endif
 				post sendNotification();
 			}
-		}else{
+		}/*else{
 			post checkState();
-		}
+		}*/
 	}
 
 	event void TimerNotification.fired(){
@@ -171,29 +126,21 @@ implementation{
 	}
 
 	event void TimerAlive.fired(){
-		if (!sending)
-			post sendAlive();
+
 	}
 
 	event void AMSend.sendDone(message_t* msg, error_t error){
-		if (&pkt == msg && error == SUCCESS){
-			sending = FALSE;
+		if(&pkt == msg){
+			if(error == SUCCESS)
+				sending = FALSE;
+			else
+				call TimerNotification.startOneShot(call Random.rand16()%500);
+		}else if(&message == msg){
+			if(error == SUCCESS)
+				sending = FALSE;
+			else
+				call AMSend.send(AM_BROADCAST_ADDR, &message, sizeof(GenericMsg));
 		}
-		if(&alive == msg && error == SUCCESS){
-			if(call Acks.wasAcked(msg)){
-				#ifdef ROUTING
-					dbg("routing","my Alive message was Acked!\n");
-				#endif
-				parent_state = 3;
-			}else{
-				// the link to the parent is probably down
-				signal NetworkToData.stopData();
-				current_seq_no--;
-				current_cost = 999;
-			}
-		}
-		else
-			call TimerNotification.startOneShot(call Random.rand16()%500);
 	}
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
@@ -219,9 +166,10 @@ implementation{
 			position = call checkForParent(temp_parent);
 			if(position != NOT_PARENT)
 				parent = TRUE;
-			else
+			else{
 				position = 0;
-
+				parent = FALSE;
+			}
 			if (temp_seq_no < current_seq_no)
 				return msg;
 			if (temp_seq_no > current_seq_no){
@@ -269,7 +217,7 @@ implementation{
 						// AN UPDATE FROM ONE OF OUR PARENT
 						// WE CAN JUST DROP IT!
 						#ifdef SILLY
-							dbg("routing","USELESS\tUPDATE\t%u\n",current_parent);
+							dbg("routing","USELESS\tUPDATE\t%u\n",temp_parent);
 						#endif
 					}else {
 						// WE HAVE A NEW MINIMUM COST, SO WE RESET THE STRUCTURE
@@ -277,7 +225,7 @@ implementation{
 						if (parent){
 							current_cost = temp_cost;
 							#ifdef ROUTING
-							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u(%u){%u}\n",current_parent,current_cost,parent_state,position);
+							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
 							#endif
 						}else{
 							current_parent = temp_parent;
@@ -309,21 +257,33 @@ implementation{
 						parents[active_parents].forwarded = 0;
 						active_parents++;
 					}
+					signal NetworkToData.parentUpdate(temp_parent);
 				}
 			}
 		}
-		#ifdef RELIABILITY
-			else if(len == sizeof(AliveMsg))
-				dbg("routing","Alive message received from %u!\n",call AMPacket.source(msg));
+		#ifdef REMOVEPARENT
+		else if(len == sizeof(GenericMsg) && TOS_NODE_ID != 0){
+			GenericMsg* genmsg = (GenericMsg*) payload;
+			uint16_t source = call AMPacket.source(msg);
+			uint16_t result = call checkForParent(source);
+			#ifdef ROUTING
+				dbg("routing","NO\tPARENT\tMESSAGE\tFROM\t%u\n",source);
+			#endif
+			if(genmsg->code == 0 && result != NOT_PARENT){
+			// NO PARENT MESSAGE
+				dbg("routing","remove parent from networkl: %u\n",source);
+				signal DataToNetwork.removeParent(source);
+			}
+		}
 		#endif
 		return msg;
 	}
 
 	event uint16_t DataToNetwork.nextParent(){
 		uint16_t messages;
-		next_parent = (next_parent % active_parents);
 		if(active_parents > 1){
 			uint16_t checked = 0;
+			next_parent = (next_parent % active_parents);
 			messages = parents[next_parent].forwarded;
 			#ifdef SILLY
 				dbg("routing","SENDING\tPARENT\t%u\n",parents[0].id);
@@ -333,8 +293,12 @@ implementation{
 				messages = parents[next_parent].forwarded;
 				checked++;
 			}
+			return parents[next_parent++].id;
 		}
-		return parents[next_parent++].id;
+		if (active_parents == 1)
+			return parents[0].id;
+		else
+			return TOS_NODE_ID;
 	}
 
 	event void DataToNetwork.messageForwarded(uint16_t parent){
@@ -352,4 +316,49 @@ implementation{
 		else
 			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
 	}
+#ifdef REMOVEPARENT
+	event void DataToNetwork.removeParent(uint16_t parent){
+		uint16_t result = call checkForParent(parent);
+		if(result != NOT_PARENT){
+			if(active_parents == 1){
+				GenericMsg* msg = (GenericMsg*)(call Packet.getPayload(&message,sizeof(GenericMsg)));
+				error_t error;
+				signal NetworkToData.stopData();
+				active_parents = 0;
+				current_cost = 999;
+				#ifdef ROUTING
+					dbg("routing","REMOVING\tMY\tONLY\tPARENT:\t%u\n",parents[0].id);
+				#endif
+				msg->code = 0;
+				if ((error = call AMSend.send(AM_BROADCAST_ADDR, &message,
+					sizeof(GenericMsg))) == SUCCESS){
+					#ifdef ROUTING
+						dbg("routing","MESSAGE\tNO\tPARENT\tSENT\n");
+					#endif
+					sending = TRUE;
+				} else {
+					dbg("routing", "\n\n\n\nERROR\t%u\n", error);
+				}
+			}else if(active_parents == (result)+1){
+				#ifdef ROUTING
+					dbg("routing","REMOVING\tMY\tPARENT:\t%u\n",parents[result].id);
+				#endif
+				active_parents--;
+			}
+			else if(active_parents > 1){
+				#ifdef ROUTING
+					dbg("routing","REMOVING\tMY\tPARENT:\t%u\n",parents[result].id);
+				#endif
+				//dbg("routing","metto %u in %u\n",parents[active_parents-1].id,parents[result].id);
+				//dbg("routing","metto %u in %u\n",parents[active_parents-1].state,parents[result].state);
+				//dbg("routing","metto %u in %u\n",parents[active_parents-1].forwarded,parents[result].forwarded);
+				parents[result].id = parents[active_parents-1].id;
+				parents[result].forwarded = parents[active_parents-1].forwarded;
+				parents[result].state = parents[active_parents-1].state;
+				active_parents--;
+			}
+		}else
+			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
+	}
+#endif
 }

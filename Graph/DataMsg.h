@@ -13,8 +13,10 @@
 enum
 {
   AM_DATAMSG = 22,
+ // SEND_PERIOD = 5000,// 5 seconds
   SEND_PERIOD = 1000,
   MESSAGE_PERIOD = 3500,
+//  MESSAGE_PERIOD = 8500,// 8.5 seconds
 };
 
 typedef nx_struct DataMsg{
