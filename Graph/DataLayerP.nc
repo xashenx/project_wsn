@@ -185,8 +185,10 @@ implementation
 			 *	ANY NODE BUT SINK SHOULD FORWARD THE MESSAGE
 				//dbg("data","received %u\n",((DataMsg*)payload)->data);	
 			 */
+			 	#ifdef DATA
 				if(((DataMsg*)payload) -> data == TOS_NODE_ID)
 					dbg("data","LOOP\tDETECTED!\n");
+				#endif
 				call Queue.enqueue(*(DataMsg*)payload);
 			}
 			#ifdef DOUBLE

@@ -2,3 +2,8 @@
 	provare anche controllando il l'occupazione della coda del padre!
 2) per aumentare l'efficienza del routing, impostare un timer che fa broadcast del
 	messaggio di routing
+3) quando viene ricevuto un messaggio di NO PARENT, 
+	a) 	se un nodo lo riceve e ha parent far partire una notification
+	b) 	spedire il messaggio a un proprio padre sino a raggiungere la sink per
+		sollecitare un un refresh anticipato
+

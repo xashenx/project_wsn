@@ -3,6 +3,7 @@
 #	STUDENT ID:	153465
 #	FILE:		basic_sim_py
 #	DESCRIPTION:	Script to execute the application through TOSSIM	
+#	CASE:		A better link is added and we can see the update of the structure
 #
 
 from TOSSIM import *
@@ -79,17 +80,32 @@ def remove_link(t, first_node, second_node):
     print "Removing link from ",second_node," to ",second_node;
     r.remove(second_node,first_node)
 
+def add_link(t, first_node, second_node,value):
+    r = t.radio()
+    print "Adding link from ",first_node," to ",second_node;
+    r.add(first_node,second_node,value)
+    print "Adding link from ",second_node," to ",first_node;
+    r.add(second_node,first_node,value)
+
 def simulation_loop(t, sim_time, nodes_count):
     t.runNextEvent()
     startup_time = t.time()
-    once = 0
+    remove = 0
+    add = 0
+    another_add = 0
     while (t.time() < startup_time + sim_time * 10000000):
         t.runNextEvent()
-        if t.time() > sim_time * 10000000 * 0.30 and once == 0:
+        if t.time() > sim_time * 10000000 * 0.30 and remove == 0:
            remove_link(t,2,0)
            remove_link(t,3,0)
            remove_link(t,4,2)
-           once = 1
+           remove = 1
+        if t.time() > sim_time * 10000000 * 0.55 and add == 0:
+	   add_link(t,3,1,-55.44)
+	   add = 1
+        if t.time() > sim_time * 10000000 * 0.60 and another_add == 0:
+	   add_link(t,2,6,-44.55)
+	   another_add = 1
 
 # Runs a simulatio for sim_time (in ms) on the network defined in topology_file
 def run_simulation(sim_time, topology_file):
@@ -109,5 +125,4 @@ def run_simulation(sim_time, topology_file):
 
 
 # Make a call to run_simulation here
-#run_simulation(75000, "test.out")
-run_simulation(1200000, "test.out")
+run_simulation(75000, "topology.out")

@@ -132,6 +132,7 @@ implementation
 				#endif
 				sending = FALSE;
 				doRetransmission = FALSE;
+				dbg("data","MESSAGE\tFORWARDED\tTO\t%u:\n",my_parent);
 			}
 		}else{
 		/*
@@ -151,7 +152,7 @@ implementation
 			 */
 				call Queue.enqueue(*(DataMsg*)payload);
 			else
-				dbg("data","received %u\n",((DataMsg*)payload)->data);
+				dbg("data","RECEIVED\t%u\n",((DataMsg*)payload)->data);
 		}
 		return msg;
 	}

@@ -13,7 +13,11 @@
 enum
 {
 	AM_GRAPHBUILDING = 33,
+	SINK_REFRESH_PERIOD = 10000,
+	RANDOM_MAX = 500,
+	#ifdef REFRESH
 	REFRESH_PERIOD = 10000,
+	#endif
 //	REFRESH_PERIOD = 300000,
 	ALIVE_PERIOD = 1000,
 	MAX_PARENTS = 10,
@@ -25,7 +29,7 @@ enum
 };
 
 typedef nx_struct RoutingMsg{
-	nx_uint16_t parent; // node id of the parent
+	//nx_uint16_t parent; // node id of the parent
 	nx_uint16_t seq_no;
 	nx_uint16_t metric; // from the node to the sink
 	nx_uint16_t forwarded; // messages forwarded from the node

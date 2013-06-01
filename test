@@ -17,25 +17,45 @@ if [[ $# = 1 && $1 = "help" ]] ; then
 	echo -e "\nPARAMETERS INFORMATION\n"
 	echo -e "test_mode:"
 	echo -e "\tnormal:\t\tthe script will execute the simulations with the normal version"
-	echo -e "\tbest:\t\tthe script will execute the simulations with the best effort version"
+	echo -e "\tbest:\t\tthe script will execute the simulations with the best-effort version"
+	echo -e "\tremove:\t\tthe script will execute the simulations with the remove-parent version"
+	echo -e "\ttree:\t\tthe script will execute the simulations with the tree-single-parent version"
 	echo -e "\nname_of_test:\t\tthis will be used as label into the results files"
 	echo -e "\npython_script_name:\tthe name of the script to use, without extension\n"
 	exit 0
+elif [[ $# = 1 && $1 = "clean" ]]; then
+	cd Graph
+	make clean
+	cd ../Tree
+	make clean
+	exit 0
 fi
 
-cd Graph
 
 if [[ $# != 6 && $# != 5 ]]; then
 	echo ERROR! Some arguments are missing! $#
 	echo USAGE: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
 	echo TIP: for more details type './test help'
 	exit 0
-elif [[ $1 = "normal" && $6 = "compile" ]]; then
-	echo COMPILING WITH NORMAL PARAMETERS
-	make micaz sim
-elif [[ $1 = "best" && $6 = "compile" ]]; then
-	echo COMPILING WITH BEST EFFORT PARAMETERS
-	make micaz sim -f Best
+elif [[ $1 = "normal" || $1 = "best" || $1 = "remove" ]]; then
+	cd Graph
+#elif [[ $1 = "normal" && $6 = "compile" ]]; then
+	if [[ $1 = "normal" && $6 = "compile" ]]; then
+		echo COMPILING WITH NORMAL PARAMETERS
+		make micaz sim
+	elif [[ $1 = "best" && $6 = "compile" ]]; then
+		echo COMPILING WITH BEST EFFORT PARAMETERS
+		make micaz sim -f Best
+	elif [[ $1 = "remove" && $6 = "compile" ]]; then
+		echo COMPILING WITH REMOVE PARAMETERS
+		make micaz sim -f Remove
+	fi
+elif [ $1 = "tree" ]; then
+	cd Tree
+	if [[ $1 = "tree" && $6 = "compile" ]]; then
+		echo COMPILING TREE VERSION
+		make micaz sim
+	fi
 fi
 
 ######### CHECKS ON THE DIRECTORY STRUCTURE
@@ -62,6 +82,7 @@ for ((i=0;i<$3;i++)); do
 		labels=$labels\\t$((i+1))
 	fi
 done
+labels=$labels\\tTOT
 
 ### START OF THE TESTS
 
@@ -75,20 +96,23 @@ for ((i=0;i<$2;i++)); do
 		for ((k=0;k<$(($3+1));k++)); do
 			## SAVES THE MESSAGES FORWARDED FROM EACH NODE DIVIDED BY PARENT
 			if [ $k = 0 ]; then
-				prova=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				tot=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				tmp=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
 			else
-				prova=$prova\\t$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				current=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				tot=$(( tot + current))
+				tmp=$tmp\\t$current
 			fi
 			cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:" >> ../results/$((j+1))_$k.out
 		done
-		echo -e $prova >> ../results/forw_$((j+1)).out
+		echo -e "$tmp\\t$tot" >> ../results/forw_$((j+1)).out
 	done
 	#if [ ! -e "../results/$5/forward_$((j+1)).csv" ]; then
 	#	echo -e $labels >> ../results/$5/forward_$((j+1)).csv
 	#fi
 	#echo -e $prova >> ../results/$5/forward_$((j+1)).csv
 	#echo ${forwarded[1]}
-	#rm ../executionOutput
+	rm ../executionOutput
 done
 
 cd ..
@@ -103,7 +127,7 @@ for ((i=0;i<$3;i++)); do
 	if [ ! -e "results/$5/forwarded_$((i+1)).csv" ]; then
 		echo -e $labels >> results/$5/forwarded_$((i+1)).csv
 	fi
-	for ((j=0;j<$3;j++)); do
+	for ((j=0;j<$3+1;j++)); do
 		if [ $j = 0 ]; then
 			forw[$((i+1))]=$4\\t$(awk -v COL=1 -f mean.awk results/forw_$((i+1)).out)
 			forw[$((i+1))]=${forw[$((i+1))]}\\t$(awk -v COL=2 -f mean.awk results/forw_$((i+1)).out)

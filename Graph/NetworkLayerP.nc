@@ -69,7 +69,13 @@ implementation{
 
 	event void AMControl.startDone(error_t err){
 		if (err == SUCCESS){
+			if(TOS_NODE_ID == 0)
+				call TimerRefresh.startPeriodic(SINK_REFRESH_PERIOD);
+			#ifdef REFRESH
+			else
 				call TimerRefresh.startPeriodic(REFRESH_PERIOD);
+			#endif
+			// TODO timer for standard node in order to refresh
 		} else {
 			call AMControl.start();
 		}
@@ -80,7 +86,7 @@ implementation{
 	task void sendNotification(){
 		RoutingMsg* msg = (RoutingMsg*) (call Packet.getPayload(&pkt,sizeof(RoutingMsg)));
 		error_t error;
-		msg->parent = current_parent;
+		//msg->parent = current_parent;
 		msg->seq_no = current_seq_no;
 		msg->metric = current_cost;
 		if ((error = call AMSend.send(AM_BROADCAST_ADDR, &pkt,
@@ -89,7 +95,7 @@ implementation{
 			sending = TRUE;
 		} else {
 			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
-			call TimerNotification.startOneShot(call Random.rand16()%500);
+			call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 		}
 	}
 
@@ -134,7 +140,7 @@ implementation{
 			if(error == SUCCESS)
 				sending = FALSE;
 			else
-				call TimerNotification.startOneShot(call Random.rand16()%500);
+				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 		}else if(&message == msg){
 			if(error == SUCCESS)
 				sending = FALSE;
@@ -209,7 +215,7 @@ implementation{
 				#ifdef ROUTING
 				dbg("routing", "NEW\tSEQNO\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
 				#endif
-				call TimerNotification.startOneShot(call Random.rand16()%500);
+				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 			} else {
 				if (current_cost > temp_cost ||
 					parent){
@@ -240,7 +246,7 @@ implementation{
 							#endif
 						}
 						parents[0].state = HEALTHY;
-						call TimerNotification.startOneShot(call Random.rand16()%500);
+						call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 					}
 					parents[0].state = HEALTHY;
 				}else if (current_cost == temp_cost){
@@ -274,6 +280,10 @@ implementation{
 				dbg("routing","remove parent from networkl: %u\n",source);
 				signal DataToNetwork.removeParent(source);
 			}
+			if(active_parents>0)
+			// IF THE NODE HAS AT LEAST A PARENT AFTER THE PROCEDURE, SEND THE NOTIFICATION
+			// SO THAT THE ORPHAN NODE CAN RECOVER
+				call TimerNotification.startOneShot(call Random.rand16() %  RANDOM_MAX);
 		}
 		#endif
 		return msg;
