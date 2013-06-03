@@ -30,7 +30,7 @@
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
 \definecolor{mymauve}{rgb}{0.58,0,0.82}
 %\usepackage{times} % Uncomment to use the Times New Roman font
-
+\usepackage{graphicx, array, blindtext}
 %----------------------------------------------------------------------------------------
 %	CODE INCLUSION CONFIGURATION
 %----------------------------------------------------------------------------------------
@@ -91,58 +91,72 @@
 \begin{document}
 
 \maketitle % Insert the title, author and date
-
+\thispagestyle{empty}
 \begin{center}
 \begin{tabular}{l r}
 \end{tabular}
 \end{center}
-
+\clearpage
 % If you wish to include an abstract, uncomment the lines below
-% \begin{abstract}
-% Abstract text
-% \end{abstract}
-
+\thispagestyle{empty}
+\begin{abstract}
+This report describes the project developed for the wireless sensor networks laboratory.
+It starts from the project specifications and continues through the implementation choices.
+It ends with the experimental results and their analysis.
+\end{abstract}
+\tableofcontents
+\clearpage
 %----------------------------------------------------------------------------------------
-%	SECTION 1
+%	SECTION 1 - PROJECT SPECIFICATION
 %----------------------------------------------------------------------------------------
+\pagenumbering{arabic}
+\section{Introduction}
+\subsection{Project Specifications}
+The project specifications ask to implement a \emph{load balanced routing protocol} over \textit{TOSSIM} which is capable to route the data traffic through a wireless sensor network up to a node called \textbf{sink}, which is responsible of the data collection.
+Each node is responsible to mantain its own "routing table", which in this case is represented by a list of \emph{parent nodes} as the next-hop node toward the sink. To balance the traffic among the parents, the node has to check the amount of forwarded message of each parent and verify, for each pair of parents, the following formula: \begin{center}$0 \leq msg_{p_{a}} - msg_{p_{b}} \leq 1$\end{center}
+where $msg_{p_{i}}$ are the messages forwarded to the parent $p_{i}$ of the node.
+\subsection{How to run the project}
+Looking at the project root, the code is contained mainly in two directories: \textbf{Graph} and \textbf{Tree}. The implementation of the LBRP is in the Graph one, while the other contain the \textit{single-parent} implementation, which was used to make some comparison over the developed protocol. The application is \textit{modular}, in the sense that from the same code is possible to compile each subversion of the application. That is made possible through some \emph{preprocessor conditional branches} inside the code (\textit{\#ifdef keyword}), which are triggered when the compilation is done using a specific makefile. These are the makefiles defined so far:
+\begin{itemize}
+  \item Makefile - the default one, which compiles the standard version of the application
+  \item Reliable - which compiles the reliable 1-1 communications version
+  \item Remove - which compiles the Cascade Parent Removal version
+  \item Debug - which compiles the debug version of the program
+\end{itemize}
 
-\section{Objective}
+If the version to compile is the standard one, it will be suffies to run "\textit{make micaz sim}", else the command to input will be "\textit{make -f \textbf{makefile} micaz sim}", where \textbf{makefile} is the makefile of the version to compile.\\
+\\Then to run the compiled program, one of the python scripts has to be chosen. 
+\begin{itemize}
+  \item generated.py - this script will execute the script over a topology generated through the topology generator contained in tinyos
+  \item newlink.py - executes the script over an ad-hoc scenario, built to check the response of the protocol
+  \item test.py - as for the previous, executes over an another ad-hoc scenario
+\end{itemize}
+To run the simulation type "\textit{python name\_of\_script}" and the simulation will begin.
+To simplify this procedure, I prepared a \emph{bash script}, which is described in section~\ref{sec:bash}.
 
-
-% If you have more than one objective, uncomment the below:
-%\begin{description}
-%\item[First Objective] \hfill \\
-%Objective 1 text
-%\item[Second Objective] \hfill \\
-%Objective 2 text
-%\end{description}
-
-\subsection{Definitions}
-\label{definitions}
-\begin{description}
-\item[Stoichiometry]
-The relationship between the relative quantities of substances taking part in a reaction or forming a compound, typically a ratio of whole integers.
-\item[Atomic mass]
-The mass of an atom of a chemical element expressed in atomic mass units. It is approximately equivalent to the number of protons and neutrons in the atom (the mass number) or to the average number allowing for the relative abundances of different isotopes. 
-\end{description} 
- 
+\clearpage
 %----------------------------------------------------------------------------------------
-%	SECTION 2
-%----------------------------------------------------------------------------------------
-
-\section{Experimental Data}
-
-\begin{tabular}{ll}
-Balance used & \#4\\
-Magnesium from sample bottle & \#1
-\end{tabular}
-
-%----------------------------------------------------------------------------------------
-%	SECTION 3
+%	SECTION 1 - PROJECT IMPLEMENTATION
 %----------------------------------------------------------------------------------------
 
-\section{Sample Calculation}
+\section{Project Implementation}
+\subsection{Bird's-eye overview}
+\subsection{Features}
+\subsubsection{Best-Effort 1-1}
+\subsubsection{Reliable 1-1}
+\subsubsection{CPR - Cascade Parent Removal}
+\subsection{Tools}
+\subsubsection{Bash script}
+\label{sec:bash}
+\clearpage
+%----------------------------------------------------------------------------------------
+%	SECTION 2 - Experimental results
+%----------------------------------------------------------------------------------------
 
+\section{Experimental Results}
+\subsection{Best-Effort 1-1}
+\subsection{Reliable 1-1}
+\subsection{CPP - Cascade Parent Removal}
 
 %----------------------------------------------------------------------------------------
 %	SECTION 4
@@ -152,39 +166,55 @@ Magnesium from sample bottle & \#1
 
 The atomic weight of magnesium is concluded to be, as determined by the stoichiometry of its chemical combination with oxygen. This result is in agreement with the accepted value.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \begin{center}
-\includegraphics[width=0.55\textwidth]{graphs/newlink_second} % Include the image placeholder.png
-\caption{Figure caption.}
+\includegraphics[scale=.35]{graphs/newlink_0_start} % Include the image placeholder.png
+\caption{Newlink starting scenario}
 \end{center}
 \end{figure}
 
+\begin{table}[ht]
+\caption{A table arranging  images}
+\centering
+\begin{tabular}{cc}
+\includegraphics[scale=.45]{graphs/newlink_0_start}&\includegraphics[scale=.35]{graphs/newlink_1_routing}\\
+ 
+\includegraphics[scale=.45]{graphs/newlink_2_remove}&\includegraphics[scale=.45]{graphs/newlink_3_add1}\\
+\end{tabular}
+\label{tab:gqwt}
+\end{table}
+
+
 %----------------------------------------------------------------------------------------
-%	SECTION 5
+%	APPENDIXES
 %----------------------------------------------------------------------------------------
 
-\section{Discussion of Experimental Uncertainty}
-
-
-The most obvious source of experimental uncertainty is the limited precision of the balance. Other potential sources of experimental uncertainty are: the reaction might not be complete; if not enough time was allowed for total oxidation, less than complete oxidation of the magnesium might have, in part, reacted with nitrogen in the air (incorrect reaction); the magnesium oxide might have absorbed water from the air, and thus weigh ``too much." Because the result obtained is close to the accepted value it is possible that some of these experimental uncertainties have fortuitously cancelled one another.
-
-%----------------------------------------------------------------------------------------
-%	SECTION 6
-%----------------------------------------------------------------------------------------
-
-\section{Answers to Definitions}
-
-\begin{enumerate}
-\begin{item}
-The \emph{atomic weight of an element} is the relative weight of one of its atoms compared to C-12 with a weight of 12.0000000$\ldots$, hydrogen with a weight of 1.008, to oxygen with a weight of 16.00. Atomic weight is also the average weight of all the atoms of that element as they occur in nature.
-\end{item}
-\begin{item}
-The \emph{units of atomic weight} are two-fold, with an identical numerical value. They are g/mole of atoms (or just g/mol) or amu/atom.
-\end{item}
-\begin{item}
-\emph{Percentage discrepancy} between an accepted (literature) value and an experimental value is $\frac{|\mathrm{experimental result} - \mathrm{accepted result}|}{\mathrm{accepted result}}$.
-\end{item}
-\end{enumerate}
+\begin{table}[ht]
+\caption{Newlink example}
+\centering
+\begin{tabular}{*{2}{m{0.48\textwidth}}}
+\hline
+This is some text&\begin{center}\includegraphics[scale=.45]{graphs/newlink_0_start}\end{center}\\
+\hline
+\blindtext&\begin{center}\includegraphics[scale=.45]{graphs/newlink_1_routing}\end{center}\\
+\hline
+\end{tabular}
+\label{tab:gAt}
+\end{table}
+\clearpage
+\begin{table}[ht]
+\caption{Test example}
+\centering
+\begin{tabular}{*{2}{m{0.48\textwidth}}}
+\hline
+This is some text&\begin{center}\includegraphics[scale=.45]{graphs/newlink_0_start}\end{center}\\
+\hline
+\blindtext&\begin{center}\includegraphics[scale=.45]{graphs/newlink_1_routing}\end{center}\\
+\hline
+\end{tabular}
+\label{tab:gAasdt}
+\end{table}
+\clearpage
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY

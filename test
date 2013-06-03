@@ -16,8 +16,8 @@ if [[ $# = 1 && $1 = "help" ]] ; then
 	echo -e "\nSCRIPT CALL FORMAT: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]"
 	echo -e "\nPARAMETERS INFORMATION\n"
 	echo -e "test_mode:"
-	echo -e "\tnormal:\t\tthe script will execute the simulations with the normal version"
-	echo -e "\tbest:\t\tthe script will execute the simulations with the best-effort version"
+	echo -e "\tnormal:\t\tthe script will execute the simulations with the best-effort version"
+	echo -e "\treliable:\t\tthe script will execute the simulations with the reliable version"
 	echo -e "\tremove:\t\tthe script will execute the simulations with the remove-parent version"
 	echo -e "\ttree:\t\tthe script will execute the simulations with the tree-single-parent version"
 	echo -e "\nname_of_test:\t\tthis will be used as label into the results files"
@@ -37,18 +37,18 @@ if [[ $# != 6 && $# != 5 ]]; then
 	echo USAGE: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
 	echo TIP: for more details type './test help'
 	exit 0
-elif [[ $1 = "normal" || $1 = "best" || $1 = "remove" ]]; then
+elif [[ $1 = "normal" || $1 = "reliable" || $1 = "remove" ]]; then
 	cd Graph
 #elif [[ $1 = "normal" && $6 = "compile" ]]; then
 	if [[ $1 = "normal" && $6 = "compile" ]]; then
 		echo COMPILING WITH NORMAL PARAMETERS
 		make micaz sim
-	elif [[ $1 = "best" && $6 = "compile" ]]; then
-		echo COMPILING WITH BEST EFFORT PARAMETERS
-		make micaz sim -f Best
+	elif [[ $1 = "reliable" && $6 = "compile" ]]; then
+		echo COMPILING WITH RELIABLE PARAMETERS
+		make -f Reliable micaz sim
 	elif [[ $1 = "remove" && $6 = "compile" ]]; then
 		echo COMPILING WITH REMOVE PARAMETERS
-		make micaz sim -f Remove
+		make -f Remove micaz sim
 	fi
 elif [ $1 = "tree" ]; then
 	cd Tree

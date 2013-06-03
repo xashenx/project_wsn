@@ -6,4 +6,6 @@
 	a) 	se un nodo lo riceve e ha parent far partire una notification
 	b) 	spedire il messaggio a un proprio padre sino a raggiungere la sink per
 		sollecitare un un refresh anticipato
+4) rilevare quante volte un nodo riceve indietro il proprio messaggio (riflette i tempi di reazione
+	alle modifiche della topologia, > è il numero, peggio il protocollo risponde)
 
