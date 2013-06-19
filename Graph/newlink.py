@@ -125,4 +125,5 @@ def run_simulation(sim_time, topology_file):
 
 
 # Make a call to run_simulation here
-run_simulation(75000, "topology.out")
+run_simulation(1200000, "topology.out")
+#run_simulation(75000, "topology.out")

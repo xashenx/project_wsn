@@ -14,6 +14,7 @@ module NetworkLayerP{
 	provides{
 		interface NetworkToData;
 		command uint16_t checkForParent(uint16_t parent);
+		command void removeParentC(uint16_t position);
 	}
 	uses{
 		interface Timer<TMilli> as TimerRefresh;
@@ -97,6 +98,15 @@ implementation{
 			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
 			call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 		}
+	}
+
+	command void removeParentC(uint16_t position){
+		if(active_parents != (position)+1){
+			parents[position].id = parents[active_parents-1].id;
+			parents[position].forwarded = parents[active_parents-1].forwarded;
+			parents[position].state = parents[active_parents-1].state;
+		}
+		active_parents--;
 	}
 
 	command uint16_t checkForParent(uint16_t parent){
@@ -217,7 +227,7 @@ implementation{
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 			} else {
-				if (current_cost > temp_cost ||
+				/*if (current_cost > temp_cost ||
 					parent){
 					if (parent && current_cost == temp_cost){
 						// AN UPDATE FROM ONE OF OUR PARENT
@@ -245,11 +255,28 @@ implementation{
 							dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
 							#endif
 						}
-						parents[0].state = HEALTHY;
 						call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
+					}*/
+				if(current_cost > temp_cost){
+					active_parents = 1;
+					if(parent){
+						current_cost = temp_cost;
+						#ifdef ROUTING
+						dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
+						#endif
+					}else{
+						current_parent = temp_parent;
+						parents[0].forwarded = 0;
+						parents[0].id = temp_parent;
+						signal NetworkToData.parentUpdate(current_parent);
+						current_cost = temp_cost;
+						overload = 0;
+						#ifdef ROUTING
+						dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
+						#endif
 					}
-					parents[0].state = HEALTHY;
-				}else if (current_cost == temp_cost){
+				//}else if (current_cost == temp_cost){
+				}else if (!parent && current_cost == temp_cost){
 					// IN THE GRAPH TOPOLOGY ROUTING WE WILL PUT AS PARENTS
 					// NODES WITH THE SAME CURRENT_COST
 					dbg("routing","CHECK\tPARENT\t%u\tSAME\t%u{%u}\n",temp_parent,temp_cost,position);
@@ -264,6 +291,22 @@ implementation{
 						active_parents++;
 					}
 					signal NetworkToData.parentUpdate(temp_parent);
+				}else if (parent && current_cost < temp_cost){
+					if (active_parents == 1){
+						// WHEN HAVING JUST ONE PARENT, UPDATE THE COST
+						current_cost = temp_cost;
+						#ifdef ROUTING
+							dbg("routing","PARENT\t%u\tINCREASED\tCOST\t%u\n",temp_parent,temp_cost);
+						#endif
+					}
+					else{
+						// WHEN AT LEAST ANOTHER PARENT IS PRESENT
+						// REMOVE THE PARENT FROM THE STRUCTURE
+						#ifdef ROUTING
+							dbg("routing","REMOVE\tPARENT\t%u\tCOST\t%u>%u\n",temp_parent,temp_cost,current_cost);
+						#endif
+						call removeParentC(call checkForParent(temp_parent));
+					}
 				}
 			}
 		}
@@ -326,6 +369,7 @@ implementation{
 		else
 			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
 	}
+
 #ifdef REMOVEPARENT
 	event void DataToNetwork.removeParent(uint16_t parent){
 		uint16_t result = call checkForParent(parent);

@@ -90,11 +90,11 @@ implementation{
 			sending = TRUE;
 		} else {
 			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
-			call TimerNotification.startOneShot(call Random.rand16()%500);
+			call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 		}
 	}
 
-	task void sendAlive(){
+	/*task void sendAlive(){
 		AliveMsg* msg = (AliveMsg*)(call Packet.getPayload(&alive,sizeof(AliveMsg)));
 		error_t error;
 		msg->node = TOS_NODE_ID;
@@ -107,7 +107,7 @@ implementation{
 			sending = TRUE;
 		} else {
 			dbg("routing", "\n\n\n\nERROR\t%u\n", error);
-			call TimerAlive.startOneShot(call Random.rand16()%500);
+			call TimerAlive.startOneShot(call Random.rand16() % RANDOM_MAX);
 		}
 	}
 
@@ -135,7 +135,7 @@ implementation{
 				parent_state--;
 				break;
 		}
-	}
+	}*/
 
 	event void TimerRefresh.fired(){
 		if(TOS_NODE_ID ==0){
@@ -157,15 +157,15 @@ implementation{
 	}
 
 	event void TimerAlive.fired(){
-		if (!sending)
-			post sendAlive();
+		/*if (!sending)
+			post sendAlive();*/
 	}
 
 	event void AMSend.sendDone(message_t* msg, error_t error){
 		if (&pkt == msg && error == SUCCESS){
 			sending = FALSE;
 		}
-		if(&alive == msg && error == SUCCESS){
+		/*if(&alive == msg && error == SUCCESS){
 			if(call Acks.wasAcked(msg)){
 				#ifdef ROUTING
 					dbg("routing","my Alive message was Acked!\n");
@@ -177,9 +177,9 @@ implementation{
 				current_seq_no--;
 				current_cost = 999;
 			}
-		}
+		}*/
 		else
-			call TimerNotification.startOneShot(call Random.rand16()%500);
+			call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 	}
 
 	event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
@@ -211,7 +211,7 @@ implementation{
 				#ifdef ROUTING
 				dbg("routing", "SET\t\tPARENT\t%u\tCOST\t%u\n", current_parent, current_cost);
 				#endif
-				call TimerNotification.startOneShot(call Random.rand16()%500);
+				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 			} else {
 				if (current_cost > temp_cost ||
 					temp_parent == current_parent){
@@ -226,9 +226,19 @@ implementation{
 					signal NetworkToData.parentUpdate(current_parent);
 					current_cost = temp_cost;
 					parent_state = 3;
-					call TimerNotification.startOneShot(call Random.rand16()%500);
+					call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 				}
-			}
+				else if(temp_parent < current_parent){
+					// IF A NODE WITH A LOWER NODE ID HAS THE SAME COST OF THE CURRENT PARENT
+					// IT WILL BE CHOSEN AS PARENT
+					#ifdef ROUTING
+						dbg("routing","CHANGE\tPARENT\t%u\tWITH\t%u\n",current_parent,temp_parent);
+					#endif
+					current_parent = temp_parent;
+					signal NetworkToData.parentUpdate(current_parent);
+					call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
+				}
+			} 
 		}
 		#ifdef RELIABILITY
 			else if(len == sizeof(AliveMsg))

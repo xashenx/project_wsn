@@ -13,6 +13,7 @@ configuration NetworkLayerC
 {
 	provides interface NetworkToData;
 	provides command uint16_t checkForParent(uint16_t parent);
+	provides command void removeParentC(uint16_t position);
 }
 implementation
 {
@@ -33,6 +34,7 @@ implementation
 	NetworkLayerP.CC2420Packet -> CC2420PacketC;
 #endif
   	checkForParent = NetworkLayerP.checkForParent;
+	removeParentC = NetworkLayerP.removeParentC;
 	NetworkToData = NetworkLayerP;
 	NetworkLayerP -> MainC.Boot;
 	NetworkLayerP.TimerNotification -> Timer0;

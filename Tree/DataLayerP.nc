@@ -35,7 +35,9 @@ implementation
 {
 	bool sending;
 	bool updated;
+	#ifdef RELTREE
 	bool doRetransmission;
+	#endif
 	message_t pkt;
 	uint16_t my_parent;
 
@@ -43,7 +45,9 @@ implementation
 		call AMControl.start();
 		sending = FALSE;
 		updated = FALSE;
+		#ifdef RELTREE
 		doRetransmission = FALSE;
+		#endif
 	}
 
 	event void AMControl.startDone(error_t err){
@@ -65,7 +69,9 @@ implementation
 			DataMsg payload = (DataMsg) call Queue.dequeue();
 			DataMsg * toDeliver = (DataMsg*) (call Packet.getPayload(&pkt,sizeof(DataMsg)));
 			*toDeliver = payload;
+			#ifdef RELTREE
 			call Acks.requestAck(&pkt);
+			#endif
 			sending = TRUE;
 			#ifdef DATA
 			dbg("data","sending %u to %u\n",toDeliver->data,my_parent);
@@ -84,9 +90,10 @@ implementation
 	}
 
 	event void TimerSend.fired(){
-		if(!sending){
+		if(!sending)
 			post forwardMessage();
-		} else if(doRetransmission){
+		#ifdef RELTREE
+		else if(doRetransmission){
 		/*
 		 *	IF THE RETRANSMISSION FLAG IS SET, THEN THE PROCEDURE IS ACTIVATED
 		 */
@@ -97,6 +104,7 @@ implementation
 			call Acks.requestAck(&pkt);
 			call AMSend.send(my_parent,&pkt,sizeof(DataMsg));
 		}
+		#endif
 	}
 
 	event void TimerMessage.fired(){
@@ -116,6 +124,7 @@ implementation
 			DataMsg* payload = (DataMsg*)(call Packet.getPayload(&pkt,sizeof(DataMsg)));
 		#endif
 		if (&pkt == msg && error == SUCCESS){
+			#ifdef RELTREE
 			if(!call Acks.wasAcked(msg)){
 			/*
 			 *	CHECKS IF THE MESSAGE WAS ACKED
@@ -130,9 +139,11 @@ implementation
 				if(doRetransmission)
 					dbg("data","retransmission successfull on %u\n",payload->data);
 				#endif
-				sending = FALSE;
 				doRetransmission = FALSE;
+			#endif
+				sending = FALSE;
 				dbg("data","MESSAGE\tFORWARDED\tTO\t%u:\n",my_parent);
+			#ifdef RELTREE
 			}
 		}else{
 		/*
@@ -140,6 +151,7 @@ implementation
 		 */
 			doRetransmission = TRUE;
 			//dbg("data","failed transmission");
+		#endif
 		}
 	}
 
