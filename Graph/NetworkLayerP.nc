@@ -19,7 +19,9 @@ module NetworkLayerP{
 	uses{
 		interface Timer<TMilli> as TimerRefresh;
 		interface Timer<TMilli> as TimerNotification;
+		#ifdef ALIVE
 		interface Timer<TMilli> as TimerAlive;
+		#endif
 		interface PacketAcknowledgements as Acks;
 		interface Leds;
 		interface Boot;
@@ -74,9 +76,9 @@ implementation{
 				call TimerRefresh.startPeriodic(SINK_REFRESH_PERIOD);
 			#ifdef REFRESH
 			else
+				// TODO timer for standard node in order to refresh
 				call TimerRefresh.startPeriodic(REFRESH_PERIOD);
 			#endif
-			// TODO timer for standard node in order to refresh
 		} else {
 			call AMControl.start();
 		}
@@ -104,7 +106,9 @@ implementation{
 		if(active_parents != (position)+1){
 			parents[position].id = parents[active_parents-1].id;
 			parents[position].forwarded = parents[active_parents-1].forwarded;
+			#ifdef ALIVE
 			parents[position].state = parents[active_parents-1].state;
+			#endif
 		}
 		active_parents--;
 	}
@@ -140,10 +144,9 @@ implementation{
 		if (!sending)
 			post sendNotification();
 	}
-
-	event void TimerAlive.fired(){
-
-	}
+#ifdef ALIVE
+	event void TimerAlive.fired(){}
+#endif
 
 	event void AMSend.sendDone(message_t* msg, error_t error){
 		if(&pkt == msg){
@@ -195,10 +198,16 @@ implementation{
 					// PARENTS, WE PUT IT INTO THE STRUCTURE, WITHOUT
 					// RESETTING IT
 						parents[active_parents].id = temp_parent;
+						#ifdef ALIVE
 						parents[active_parents].state = HEALTHY;
+						#endif
 						parents[active_parents].forwarded = 0;
 						active_parents++;
+					}else if (!parent && active_parents == MAX_PARENTS){
+						parents[MAX_PARENTS-1].id = temp_parent;
+						parents[MAX_PARENTS-1].forwarded = 0;
 					}
+
 				}else{
 				// REACHING THE NODE AS FIRST WITH A SMALLER COST IS COMMON
 				// BUT HERE EVEN A COMMUNICATION WITH A GREATER COST IT TAKEN
@@ -217,7 +226,9 @@ implementation{
 					}
 					parents[0].id = temp_parent;
 					current_cost = temp_cost;
+					#ifdef ALIVE
 					parents[0].state = HEALTHY;
+					#endif
 					signal NetworkToData.parentUpdate(temp_parent);
 				}
 				current_seq_no = temp_seq_no;
@@ -227,54 +238,26 @@ implementation{
 				#endif
 				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 			} else {
-				/*if (current_cost > temp_cost ||
-					parent){
-					if (parent && current_cost == temp_cost){
-						// AN UPDATE FROM ONE OF OUR PARENT
-						// WE CAN JUST DROP IT!
-						#ifdef SILLY
-							dbg("routing","USELESS\tUPDATE\t%u\n",temp_parent);
-						#endif
-					}else {
-						// WE HAVE A NEW MINIMUM COST, SO WE RESET THE STRUCTURE
-						active_parents = 1;
-						if (parent){
-							current_cost = temp_cost;
-							#ifdef ROUTING
-							dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
-							#endif
-						}else{
-							current_parent = temp_parent;
-							//parents[0].cost = temp_cost;
-							parents[0].forwarded = 0;
-							parents[0].id = temp_parent;
-							signal NetworkToData.parentUpdate(current_parent);
-							current_cost = temp_cost;
-							overload = 0;
-							#ifdef ROUTING
-							dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
-							#endif
-						}
-						call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
-					}*/
 				if(current_cost > temp_cost){
 					active_parents = 1;
+					current_cost = temp_cost;
+					parents[0].id = temp_parent;
 					if(parent){
-						current_cost = temp_cost;
+						parents[0].forwarded = parents[position].forwarded;
+						overload = parents[position].forwarded;
 						#ifdef ROUTING
 						dbg("routing","PARENT\tUPDATE\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
 						#endif
 					}else{
 						current_parent = temp_parent;
 						parents[0].forwarded = 0;
-						parents[0].id = temp_parent;
-						signal NetworkToData.parentUpdate(current_parent);
-						current_cost = temp_cost;
 						overload = 0;
 						#ifdef ROUTING
 						dbg("routing","SET\tPARENT\t%u\tCOST\t%u{%u}\n",current_parent,current_cost,position);
 						#endif
 					}
+					signal NetworkToData.parentUpdate(current_parent);
+					call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 				//}else if (current_cost == temp_cost){
 				}else if (!parent && current_cost == temp_cost){
 					// IN THE GRAPH TOPOLOGY ROUTING WE WILL PUT AS PARENTS
@@ -286,11 +269,13 @@ implementation{
 					}*/
 					if(active_parents<MAX_PARENTS){
 						parents[active_parents].id = temp_parent;
+						#ifdef ALIVE
 						parents[active_parents].state = HEALTHY;
+						#endif
 						parents[active_parents].forwarded = 0;
 						active_parents++;
+						signal NetworkToData.parentUpdate(temp_parent);
 					}
-					signal NetworkToData.parentUpdate(temp_parent);
 				}else if (parent && current_cost < temp_cost){
 					if (active_parents == 1){
 						// WHEN HAVING JUST ONE PARENT, UPDATE THE COST
@@ -298,6 +283,7 @@ implementation{
 						#ifdef ROUTING
 							dbg("routing","PARENT\t%u\tINCREASED\tCOST\t%u\n",temp_parent,temp_cost);
 						#endif
+						call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 					}
 					else{
 						// WHEN AT LEAST ANOTHER PARENT IS PRESENT
@@ -318,15 +304,28 @@ implementation{
 			#ifdef ROUTING
 				dbg("routing","NO\tPARENT\tMESSAGE\tFROM\t%u\n",source);
 			#endif
-			if(genmsg->code == 0 && result != NOT_PARENT){
+			if(genmsg->code == NO_PARENT_MSG && result != NOT_PARENT){
 			// NO PARENT MESSAGE
 				dbg("routing","remove parent from networkl: %u\n",source);
 				signal DataToNetwork.removeParent(source);
+				if(active_parents>0)
+				// IF THE NODE HAS AT LEAST A PARENT AFTER THE PROCEDURE, SEND THE NOTIFICATION
+				// SO THAT THE ORPHAN NODE CAN RECOVER
+					call TimerNotification.startOneShot(call Random.rand16() %  RANDOM_MAX);
 			}
-			if(active_parents>0)
+			#ifdef REBUILDMSG
+			else if(genmsg->code == ROR_MSG){
+			//TODO IMPLEMENTATION
+
+			}
+			#endif:
+			// REQUEST OF REBUILD MESSAGE
+
+			/*if(active_parents>0)
 			// IF THE NODE HAS AT LEAST A PARENT AFTER THE PROCEDURE, SEND THE NOTIFICATION
 			// SO THAT THE ORPHAN NODE CAN RECOVER
-				call TimerNotification.startOneShot(call Random.rand16() %  RANDOM_MAX);
+				call TimerNotification.startOneShot(call Random.rand16() %  RANDOM_MAX);*/
+
 		}
 		#endif
 		return msg;
@@ -367,7 +366,7 @@ implementation{
 			//parents[result].forwarded += 1;
 		}
 		else
-			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
+			dbg("data","1ERROR\tNO\tPARENT\tFOUND\t%u\n",parent);
 	}
 
 #ifdef REMOVEPARENT
@@ -383,7 +382,7 @@ implementation{
 				#ifdef ROUTING
 					dbg("routing","REMOVING\tMY\tONLY\tPARENT:\t%u\n",parents[0].id);
 				#endif
-				msg->code = 0;
+				msg->code = NO_PARENT_MSG;
 				if ((error = call AMSend.send(AM_BROADCAST_ADDR, &message,
 					sizeof(GenericMsg))) == SUCCESS){
 					#ifdef ROUTING
@@ -408,11 +407,13 @@ implementation{
 				//dbg("routing","metto %u in %u\n",parents[active_parents-1].forwarded,parents[result].forwarded);
 				parents[result].id = parents[active_parents-1].id;
 				parents[result].forwarded = parents[active_parents-1].forwarded;
+				#ifdef ALIVE
 				parents[result].state = parents[active_parents-1].state;
+				#endif
 				active_parents--;
 			}
 		}else
-			dbg("data","ERROR\tNO\tPARENT\tFOUND\n");
+			dbg("data","2ERROR\tNO\tPARENT\tFOUND\t%u\n",parent);
 	}
 #endif
 }

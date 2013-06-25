@@ -23,23 +23,28 @@
 
 \usepackage{graphicx} % Required for the inclusion of images
 \usepackage{listings} % Required for insertion of code
+\usepackage{amssymb}
 \setlength\parindent{0pt} % Removes all indentation from paragraphs
 \usepackage[usenames,dvipsnames]{color} % Required for custom colors
 \renewcommand{\labelenumi}{\alph{enumi}.} % Make numbering in the enumerate environment by letter rather than number (e.g. section 6)
 \definecolor{mygreen}{rgb}{0,0.6,0}
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
 \definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{mysilver}{gray}{0.85}
 %\usepackage{times} % Uncomment to use the Times New Roman font
 \usepackage{graphicx, array, blindtext}
+\usepackage{float}
+\restylefloat{figure}
+
 %----------------------------------------------------------------------------------------
 %	CODE INCLUSION CONFIGURATION
 %----------------------------------------------------------------------------------------
 
 \definecolor{MyDarkGreen}{rgb}{0.0,0.4,0.0} % This is the color used for comments
-\lstloadlanguages{C} % load C syntax
+\lstloadlanguages{C,C++} % load C syntax
 
 \lstset{ %
-  backgroundcolor=\color{SpringGreen},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+  backgroundcolor=\color{mysilver},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
   basicstyle=\footnotesize,        % the size of the fonts that are used for the code
   breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
   breaklines=true,                 % sets automatic line breaking
@@ -54,7 +59,7 @@
   morekeywords={*,...},            % if you want to add more keywords to the set
   numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
   numbersep=5pt,                   % how far the line-numbers are from the code
-  stepnumber=3,    
+  stepnumber=200,    
   firstnumber=1,
   numberfirstline=false
   %numberstyle=\tiny\color{gray}, % the style that is used for the line-numbers
@@ -112,11 +117,12 @@ It ends with the experimental results and their analysis.
 \pagenumbering{arabic}
 \section{Introduction}
 \subsection{Project Specifications}
-The project specifications ask to implement a \emph{load balanced routing protocol} over \textit{TOSSIM} which is capable to route the data traffic through a wireless sensor network up to a node called \textbf{sink}, which is responsible of the data collection.
+The project specifications ask to implement a \emph{Load Balanced Routing Protocol} (LBRP) over \textit{TOSSIM} which is capable to route the data traffic through a wireless sensor network up to a node called \textbf{sink}, which is responsible of the data collection.
 Each node is responsible to mantain its own "routing table", which in this case is represented by a list of \emph{parent nodes} as the next-hop node toward the sink. To balance the traffic among the parents, the node has to check the amount of forwarded message of each parent and verify, for each pair of parents, the following formula: \begin{center}$0 \leq msg_{p_{a}} - msg_{p_{b}} \leq 1$\end{center}
 where $msg_{p_{i}}$ are the messages forwarded to the parent $p_{i}$ of the node.
 \subsection{How to run the project}
-Looking at the project root, the code is contained mainly in two directories: \textbf{Graph} and \textbf{Tree}. The implementation of the LBRP is in the Graph one, while the other contain the \textit{single-parent} implementation, which was used to make some comparison over the developed protocol. The application is \textit{modular}, in the sense that from the same code is possible to compile each subversion of the application. That is made possible through some \emph{preprocessor conditional branches} inside the code (\textit{\#ifdef keyword}), which are triggered when the compilation is done using a specific makefile. These are the makefiles defined so far:
+\label{sec:howto}
+Looking at the project root, the code is contained mainly in two directories: \textbf{Graph} and \textbf{Tree}. The implementation of the LBRP is in the Graph one, while the other contain the \textit{single-parent} implementation, which was used to make some comparison over the developed protocol. The application is \textit{modular}, in the sense that from the same code is possible to compile any subversion of the application. That is made possible through some \emph{preprocessor conditional branches} inside the code (\textit{\#ifdef keyword}), which are triggered when the compilation is done using a specific makefile. These are the makefiles defined so far:
 \begin{itemize}
   \item Makefile - the default one, which compiles the standard version of the application
   \item Reliable - which compiles the reliable 1-1 communications version
@@ -124,39 +130,111 @@ Looking at the project root, the code is contained mainly in two directories: \t
   \item Debug - which compiles the debug version of the program
 \end{itemize}
 
-If the version to compile is the standard one, it will be suffies to run "\textit{make micaz sim}", else the command to input will be "\textit{make -f \textbf{makefile} micaz sim}", where \textbf{makefile} is the makefile of the version to compile.\\
+If the version to compile is the standard one, it will be suffies to run "\textit{make micaz sim}", else the command to input will be "\textit{make -f \textbf{makefile\_name} micaz sim}", where \textbf{makefile\_name} is the makefile of the version to compile.\\
 \\Then to run the compiled program, one of the python scripts has to be chosen. 
 \begin{itemize}
-  \item generated.py - this script will execute the script over a topology generated through the topology generator contained in tinyos
+  \item 25.py - this script will execute the script over a topology generated through the topology generator contained in tinyos, with 25 nodes
+  \item 49.py - as the previous, the topology was generated, but this time it has 49 nodes
   \item newlink.py - executes the script over an ad-hoc scenario, built to check the response of the protocol
   \item test.py - as for the previous, executes over an another ad-hoc scenario
+  \item stable.py - executes the script on a toplogy of 8 nodes with a stable topology and a good connectivity
 \end{itemize}
 To run the simulation type "\textit{python name\_of\_script}" and the simulation will begin.
 To simplify this procedure, I prepared a \emph{bash script}, which is described in section~\ref{sec:bash}.
 
 \clearpage
 %----------------------------------------------------------------------------------------
-%	SECTION 1 - PROJECT IMPLEMENTATION
+%	SECTION 2 - PROJECT IMPLEMENTATION
 %----------------------------------------------------------------------------------------
 
 \section{Project Implementation}
 \subsection{Bird's-eye overview}
-\subsection{Features}
+The first thing to take into consideration when coding a multiple-parent routing is to fix a structure to mantain the information. I defined the following structure:
+\lstinputlisting[firstline=62,lastline=81,language=C++,caption=Parent Structure of LBRP]{../Graph/RoutingMsg.h}
+Actually the paremeters used are the ones out of any preprocessor guard: \textit{id} and \textit{forwarded}, which makes the structure as simple and straightforward as possible. The other parameters were supposed to be used for further developments of the protocols, but by now they are just coded in the header file.
+\\The RoutingMsg/Beacon looks like the structure:
+\lstinputlisting[firstline=40,lastline=49,language=C++,caption=Routing message]{../Graph/RoutingMsg.h}
+The id of the sender is just a redundant information, because it can be retrieved by calling \textit{AMPacket.source} over the receive message, while we need a \textit{sequence number} to organize the beacons with an ordering dictate by the sink.
+\begin{figure}[H]
+%\includegraphics[scale=.65]{images/activity_LBRP.png}
+\caption{Activity Diagram of the LBRP}
+\label{fig:activityLBRP}
+\end{figure}
+INSERIRE ACTIVITY DIAGRAM	
+The protocol flow is described in Figure~\ref{fig:activityLBRP}, a thing that should be noticed is that a node will broadcast a routing message, only when its current cost to the sink is somehow changed. This avoid to generate traffic which should not give any benefit to the network.
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=.4]{graphs/stable_0_start}
+\caption{Stable scenario start}
+\label{fig:stableStart}
+\end{center}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cc}
+\includegraphics[scale=.4]{graphs/stable_1_routing}&\includegraphics[scale=.4]{graphs/stable_1tree_routing}\\
+\end{tabular}
+\caption{Comparison}
+\label{tab:comparisonProto}
+\end{table}
+
+\subsection{Implemented Features}
+During the development of the project, I inserted into the project several features (modes), which alter the behaviour of the protocol. The major difference stands in the reliability of the communication, in fact there is the baseline versione which has estEffort 1-1 communications, while I developed another version with Reliable 1-1. I decided to develop several version in order to run them over different topologies and compare their results.
 \subsubsection{Best-Effort 1-1}
+This was the requested mode for the developed project, which substancially does not take care of any retransmission in a best effort trasmission flavour. So that any trasmission to a parent will be counted, without taking into consideration its result. As said in the section~\ref{sec:howto}, to compile this version it would be suffice to type "make micaz sim"
 \subsubsection{Reliable 1-1}
+Thanks to the use of acks and their managment, this version work over a reliable 1-1 channel. In this case, only successful communication are counted for each parent. The differences in the code are almost only in the DataLayer module.
 \subsubsection{CPR - Cascade Parent Removal}
+The Cascade Parent Removal is a feature which can be used by the Reliable 1-1 version. It comes from the idea that when the communications to a parent are unsuccessfull for a given number of sequential attempts, it ends up in the assumption that such parent is no more reachable (might be dead, moved away, etc). But as the name might suggest, this feature does a bit more, infact whenever a parent is removed following the procedure before and that parent was the only one the node have, a NO\_PARENT\_MSG is broadcasted. Each node that will receive such message, will check if the send is among its parents and in that case the sender will be removed from the parents. This procedure will be repeated until  a node which has a "backup" route is found (or even a node which is not the son of the sender of the NO\_PARENT\_MSG), and this explains the term \textit{cascade}.
+Furthermore, CPR implements a \textit{recovery} procedure, so that when a NO\_PARENT\_MSG reaches a node that has a "safe" route, that node will schedule the broadcast of a routing message, so that the orphan node(s) (a cascade might have happened) will eventually rebuild a path to the sink.
+\subsection{Not-Yet-Implemented Features}
+Here I list some features that I started to implement, but by now are not yet completed. They are listed just for explain why in the code there might be some reference to structures, methods,etc that might seem not connected to the goals of the project.
+\subsubsection{Alive Messages}
+The Alive procedure was one of the first features on which I started to work at the begining of the development. It can be said that it was the \emph{parent of CPR}. However, Alive was rather much complex than CPR, it involved both Data and NetworkLayer, and even a specific \textit{timer} was used. The NetworkLayer was \textit{constantly} looking at the \emph{state} of any parents, so that when a communication from a parent is received, the state of such parent is set to ALIVE, on the contrary whenever the alive timer is triggered, the state of each parent is decremented. For each value of the state of a parent, a behavior is codified, such that:
+\begin{itemize}
+	\item 3 (ALIVE): the parent is alive, the normal behavior is allowed
+	\item 2 : tollerance level, the behavior will be  kept as normal even in this stage
+	\item 1 : the absence of parent communications is rather suspicious, stop data communications, send an AliveMsg
+	\item 0 (DEAD): the parent is marked as dead, it can be removed and/or substituted
+\end{itemize}
+An Alive Message, was a message with a minimal dummy payload, an integer containing the nodeId of the sender, for which a acks is explicitly requested. In the original idea, the Alive mechaninsm was planned to be applied to all version, so that even with the Best-Effort a way to substitute broken/bad links would be available.
+\subsubsection{Other Balancing Metrics}
+The balancing of the load over a count mantained locally by each node, could be improved somehow. That was my tought, so I started thinking what can be exploited to have a better view of the congestion of parent nodes. I reached two possibilities: \textbf{buffer usage} and \textbf{traffic} of parent. The first idea comes from the fact that if we can retrieve the buffer usage of each parent, it would be nice to send the traffic to the one with the \emph{highest buffer availability}. Moreover I looked over the buffer usage and it turned out that with my settings for the timers that \emph{send messages} (from the buffer) and \emph{generate messages} (insert in the buffer), which are respectively set to \textit{5s} and \textit{10,5s}, if we use a time $\tau_i$, where $\tau_{i+1}-\tau_{i}=5s$, a buffer of size \emph{n}, will be filled at time $\tau_n$ when having two descendants (e.g. two children or a child and a grandchild). So a tuning over the buffer might be a good idea.
+\\ The traffic metric, looks over the forwarded messaged FROM each parent. This is much more general than the previous, but can anyway give the flavour of the congestion of a node.
+\\Both the metrics are quite easy to implement, but the problem consists in the rate at which the refresh of that information is provvided to the children. In fact if it is too large (e.g. beaconing period) the information could became rather old and the balancing cannot be such effective, on the other hand if the refresh happens too often it could introduce too much overhead into the network.
+\subsubsection{Rebuild Messages}
+This was meant to be an \textit{extension} of CPR, where a \textbf{request of rebuild} (ROR\_MSG) would be routed to the sink in order to ask for a new \emph{beacon}. For the \textit{rebuild period} I thought at two possibilities:
+\begin{itemize}
+	\item Single rebuild beacon, the sink sends a single rebuild beacon for each request
+	\item Adaptive beacon, inspired to the one of \emph{CTP\footnote{CTPlink}} (which is itself inspired to \emph{Trickle\footnote{Tricklelink}}), but applied to the receipt of rebuild messages, so that whenever a ROR\_MSG is received by the sink the beacong period is set to a minimum, while at each activation of the beaconing timer, the period is doubled up to the max value.
+\end{itemize}
+Inspired by the CTP/Trickle \textit{adaptive timings}, Single Rebuild, Adaptive Rebuild
 \subsection{Tools}
 \subsubsection{Bash script}
 \label{sec:bash}
+I wrote a bash script to make easier the job of running series of tests and perform data analysis. By typing "./test help", the script returns a small documentation. The script call format is "./test test\_mode number\_of\_tests number\_of\_nodes name\_of\_test python\_script\_name [compile]" where \textit{test\_mode} can be:
+\begin{itemize}
+	\item normal, for running the best-effort version of the project
+	\item rel, for running the reliable version of the project
+	\item remove, for running the CPR version of the project
+	\item tree, for running the best-effort tree-single-parent version
+	\item reltree, for running the reliable tree-single-parent version
+\end{itemize}
+The \textit{python\_script\_name} is the name of the python script used for the simulations and could be one of those named in Section~\ref{sec:howto}.
+\subsubsection{AWK}
+The AWK\footnote{AWKlink} language was used in order to work over the data gathered by the simulations and make some stastistics over them.
 \clearpage
 %----------------------------------------------------------------------------------------
-%	SECTION 2 - Experimental results
+%	SECTION 3 - Experimental results
 %----------------------------------------------------------------------------------------
 
 \section{Experimental Results}
-\subsection{Best-Effort 1-1}
-\subsection{Reliable 1-1}
-\subsection{CPP - Cascade Parent Removal}
+\subsection{Newlink Results}
+\subsection{Test Results}
+\subsection{Stable Results}
+\subsection{25 Results}
+\subsection{49 Results}
 
 %----------------------------------------------------------------------------------------
 %	SECTION 4

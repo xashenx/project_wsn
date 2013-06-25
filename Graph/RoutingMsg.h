@@ -28,19 +28,30 @@ enum
 	STOP = 1,
 	DEAD = 0,
 	NOT_PARENT = 99,
+// CODE OF GENERIC MESSAGES
+	#ifdef REMOVEPARENT
+	NO_PARENT_MSG = 0,
+	#ifdef REBUILDMSG
+	ROR_MSG = 1,
+	#endif
+	#endif
 };
-
+//nx_uint16_t forwarded; // messages forwarded from the node (hop-count)
 typedef nx_struct RoutingMsg{
-	//nx_uint16_t parent; // node id of the parent
 	nx_uint16_t seq_no;
-	nx_uint16_t metric; // from the node to the sink
-	nx_uint16_t forwarded; // messages forwarded from the node
+	nx_uint16_t metric; // from the node to the sink (hop-count)
+	#ifdef BUFFER_METRIC
+	nx_uint16_t buffer; // actual usage of the buffer
+	#endif
+	#ifdef TRAFFIC_METRIC
+	nx_uint16_t traffic; // traffic on the node
+	#endif
 } RoutingMsg;
-
+#ifdef ALIVE
 typedef nx_struct AliveMsg{
 	nx_uint16_t node;
 } AliveMsg;
-
+#endif
 typedef nx_struct GenericMsg{
 	nx_uint16_t code;
 	/*
@@ -49,8 +60,15 @@ typedef nx_struct GenericMsg{
 } GenericMsg;
 
 typedef nx_struct Parent{
-	nx_uint16_t id;
+	nx_uint16_t id;	// Node ID of the parent
 	nx_uint16_t forwarded; // messages forwarded from the parent
+	#ifdef BUFFER_METRIC
+	nx_uint16_t buffer; // buffer usage of the parent @ last beacon
+	#endif
+	#ifdef TRAFFIC_METRIC
+	nx_uint16_t traffic; // traffic on the parent @ last beacon
+	#endif
+	#ifdef ALIVE
 	/*
 	*	state of the link to the parent
 	*	3: the link is ALIVE
@@ -59,5 +77,6 @@ typedef nx_struct Parent{
 	*	0: the link is DEAD, then it can be substituted
 	*/
 	nx_uint16_t state; 
+	#endif
 } Parent;
 #endif

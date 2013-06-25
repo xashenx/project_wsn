@@ -21,7 +21,9 @@ implementation
 	components DataLayerC;
 	components new TimerMilliC() as Timer0;
 	components new TimerMilliC() as Timer1;
+#ifdef ALIVE
 	components new TimerMilliC() as Timer2;
+#endif
 	components new AMSenderC(AM_GRAPHBUILDING);
 	components new AMReceiverC(AM_GRAPHBUILDING);
 	components RandomC;
@@ -39,7 +41,9 @@ implementation
 	NetworkLayerP -> MainC.Boot;
 	NetworkLayerP.TimerNotification -> Timer0;
 	NetworkLayerP.TimerRefresh -> Timer1;
+#ifdef ALIVE
 	NetworkLayerP.TimerAlive -> Timer2;
+#endif
 	NetworkLayerP.Leds -> LedsC;
 	NetworkLayerP.Packet -> AMSenderC;
 	NetworkLayerP.AMPacket -> ActiveMessageC;

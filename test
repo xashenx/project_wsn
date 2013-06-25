@@ -17,9 +17,10 @@ if [[ $# = 1 && $1 = "help" ]] ; then
 	echo -e "\nPARAMETERS INFORMATION\n"
 	echo -e "test_mode:"
 	echo -e "\tnormal:\t\tthe script will execute the simulations with the best-effort version"
-	echo -e "\treliable:\t\tthe script will execute the simulations with the reliable version"
+	echo -e "\trel:\tthe script will execute the simulations with the reliable version"
 	echo -e "\tremove:\t\tthe script will execute the simulations with the remove-parent version"
 	echo -e "\ttree:\t\tthe script will execute the simulations with the tree-single-parent version"
+	echo -e "\treltree:\tthe script will execute the simulations with the reliable-tree-single-parent version"
 	echo -e "\nname_of_test:\t\tthis will be used as label into the results files"
 	echo -e "\npython_script_name:\tthe name of the script to use, without extension\n"
 	exit 0
@@ -37,24 +38,27 @@ if [[ $# != 6 && $# != 5 ]]; then
 	echo USAGE: ./test test_mode number_of_tests number_of_nodes name_of_test python_script_name [compile]
 	echo TIP: for more details type './test help'
 	exit 0
-elif [[ $1 = "normal" || $1 = "reliable" || $1 = "remove" ]]; then
+elif [[ $1 = "normal" || $1 = "rel" || $1 = "remove" ]]; then
 	cd Graph
 #elif [[ $1 = "normal" && $6 = "compile" ]]; then
 	if [[ $1 = "normal" && $6 = "compile" ]]; then
 		echo COMPILING WITH NORMAL PARAMETERS
 		make micaz sim
-	elif [[ $1 = "reliable" && $6 = "compile" ]]; then
+	elif [[ $1 = "rel" && $6 = "compile" ]]; then
 		echo COMPILING WITH RELIABLE PARAMETERS
 		make -f Reliable micaz sim
 	elif [[ $1 = "remove" && $6 = "compile" ]]; then
 		echo COMPILING WITH REMOVE PARAMETERS
 		make -f Remove micaz sim
 	fi
-elif [ $1 = "tree" ]; then
+elif [[ $1 = "tree" || $1 = "reltree" ]]; then
 	cd Tree
 	if [[ $1 = "tree" && $6 = "compile" ]]; then
 		echo COMPILING TREE VERSION
 		make micaz sim
+	elif [[ $1 = "reltree" && $6 = "compile" ]]; then
+		echo COMPILING RELTREE VERSION
+		make -f Reliable micaz sim
 	fi
 fi
 
@@ -69,7 +73,7 @@ fi
 ## IF THE SUMMARY OF THE TEST DOES NOT EXISTS, CREATE IT
 
 if [ ! -e "../results/summary.csv" ]; then
-	echo -e "NAME\tMODE\tSCRIPT\tSIMULATIONS\tDATE" >> ../results/summary.csv
+	echo -e "NAME\tMODE\tSCRIPT\tSIMULATIONS\tSTART" >> ../results/summary.csv
 fi
 ## PUT THE DETAILS OF THE CURRENT TEST IN THE SUMMARY
 echo -e "$4\t$1\t$5.py\t$2\t$(date +"%m-%d-%Y  %T")" >> ../results/summary.csv
@@ -92,18 +96,18 @@ for ((i=0;i<$2;i++)); do
 	python $5.py > ../executionOutput
 	for ((j=0;j<$3;j++)); do
 		## PUT THE # OF MESSAGES WHICH REACHED THE SINK DIVIDED BY NODE
-		cat ../executionOutput | grep -i "0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
+		cat ../executionOutput | grep -i "(0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
 		for ((k=0;k<$(($3+1));k++)); do
 			## SAVES THE MESSAGES FORWARDED FROM EACH NODE DIVIDED BY PARENT
 			if [ $k = 0 ]; then
-				tot=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
-				tmp=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				tot=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
+				tmp=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
 			else
-				current=$(cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:")
+				current=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
 				tot=$(( tot + current))
 				tmp=$tmp\\t$current
 			fi
-			cat ../executionOutput | grep -i "$((j+1)))" | grep -c "$k:" >> ../results/$((j+1))_$k.out
+			cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:" >> ../results/$((j+1))_$k.out
 		done
 		echo -e "$tmp\\t$tot" >> ../results/forw_$((j+1)).out
 	done
