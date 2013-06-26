@@ -35,6 +35,7 @@
 \usepackage{graphicx, array, blindtext}
 \usepackage{float}
 \restylefloat{figure}
+\usepackage{multirow}
 
 %----------------------------------------------------------------------------------------
 %	CODE INCLUSION CONFIGURATION
@@ -109,6 +110,7 @@ This report describes the project developed for the wireless sensor networks lab
 It starts from the project specifications and continues through the implementation choices.
 It ends with the experimental results and their analysis.
 \end{abstract}
+\clearpage
 \tableofcontents
 \clearpage
 %----------------------------------------------------------------------------------------
@@ -148,71 +150,87 @@ To simplify this procedure, I prepared a \emph{bash script}, which is described 
 %----------------------------------------------------------------------------------------
 
 \section{Project Implementation}
-\subsection{Bird's-eye overview}
+	\subsection{Bird's-eye overview}
 The first thing to take into consideration when coding a multiple-parent routing is to fix a structure to mantain the information. I defined the following structure:
 \lstinputlisting[firstline=62,lastline=81,language=C++,caption=Parent Structure of LBRP]{../Graph/RoutingMsg.h}
 Actually the paremeters used are the ones out of any preprocessor guard: \textit{id} and \textit{forwarded}, which makes the structure as simple and straightforward as possible. The other parameters were supposed to be used for further developments of the protocols, but by now they are just coded in the header file.
 \\The RoutingMsg/Beacon looks like the structure:
 \lstinputlisting[firstline=40,lastline=49,language=C++,caption=Routing message]{../Graph/RoutingMsg.h}
 The id of the sender is just a redundant information, because it can be retrieved by calling \textit{AMPacket.source} over the receive message, while we need a \textit{sequence number} to organize the beacons with an ordering dictate by the sink.
-\begin{figure}[H]
-%\includegraphics[scale=.65]{images/activity_LBRP.png}
-\caption{Activity Diagram of the LBRP}
-\label{fig:activityLBRP}
-\end{figure}
-INSERIRE ACTIVITY DIAGRAM	
-The protocol flow is described in Figure~\ref{fig:activityLBRP}, a thing that should be noticed is that a node will broadcast a routing message, only when its current cost to the sink is somehow changed. This avoid to generate traffic which should not give any benefit to the network.
-\begin{figure}[H]
-\begin{center}
-\includegraphics[scale=.4]{graphs/stable_0_start}
-\caption{Stable scenario start}
-\label{fig:stableStart}
-\end{center}
-\end{figure}
+		\begin{figure}[H]
+			%\includegraphics[scale=.65]{images/activity_LBRP.png}
+			\caption{Activity Diagram of the LBRP}
+			\label{fig:activityLBRP}
+		\end{figure}
+\textbf{INSERIRE ACTIVITY DIAGRAM}
+\\The protocol flow is described in Figure~\ref{fig:activityLBRP}, a thing that should be noticed is that a node will broadcast a routing message, only when its current cost to the sink is somehow changed. This avoid to generate traffic which should not give any benefit to the network.
+		\begin{figure}[H]
+			\begin{center}
+				\includegraphics[scale=.4]{graphs/stable_0_start}
+				\caption{Stable scenario start}
+				\label{fig:stableStart}
+			\end{center}
+		\end{figure}
 
-\begin{table}[H]
-\centering
-\begin{tabular}{cc}
-\includegraphics[scale=.4]{graphs/stable_1_routing}&\includegraphics[scale=.4]{graphs/stable_1tree_routing}\\
-\end{tabular}
-\caption{Comparison}
-\label{tab:comparisonProto}
-\end{table}
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{cc}
+				\includegraphics[scale=.4]{graphs/stable_1_routing}&\includegraphics[scale=.4]{graphs/stable_1tree_routing}\\
+			\end{tabular}
+			\caption{Comparison}
+			\label{tab:comparisonProto}
+		\end{table}
 
-\subsection{Implemented Features}
+	\subsection{Implemented Features}
+	
 During the development of the project, I inserted into the project several features (modes), which alter the behaviour of the protocol. The major difference stands in the reliability of the communication, in fact there is the baseline versione which has estEffort 1-1 communications, while I developed another version with Reliable 1-1. I decided to develop several version in order to run them over different topologies and compare their results.
-\subsubsection{Best-Effort 1-1}
+
+		\subsubsection{Best-Effort 1-1}
+	
 This was the requested mode for the developed project, which substancially does not take care of any retransmission in a best effort trasmission flavour. So that any trasmission to a parent will be counted, without taking into consideration its result. As said in the section~\ref{sec:howto}, to compile this version it would be suffice to type "make micaz sim"
-\subsubsection{Reliable 1-1}
+
+		\subsubsection{Reliable 1-1}
+	
 Thanks to the use of acks and their managment, this version work over a reliable 1-1 channel. In this case, only successful communication are counted for each parent. The differences in the code are almost only in the DataLayer module.
-\subsubsection{CPR - Cascade Parent Removal}
+
+		\subsubsection{CPR - Cascade Parent Removal}
+	
 The Cascade Parent Removal is a feature which can be used by the Reliable 1-1 version. It comes from the idea that when the communications to a parent are unsuccessfull for a given number of sequential attempts, it ends up in the assumption that such parent is no more reachable (might be dead, moved away, etc). But as the name might suggest, this feature does a bit more, infact whenever a parent is removed following the procedure before and that parent was the only one the node have, a NO\_PARENT\_MSG is broadcasted. Each node that will receive such message, will check if the send is among its parents and in that case the sender will be removed from the parents. This procedure will be repeated until  a node which has a "backup" route is found (or even a node which is not the son of the sender of the NO\_PARENT\_MSG), and this explains the term \textit{cascade}.
 Furthermore, CPR implements a \textit{recovery} procedure, so that when a NO\_PARENT\_MSG reaches a node that has a "safe" route, that node will schedule the broadcast of a routing message, so that the orphan node(s) (a cascade might have happened) will eventually rebuild a path to the sink.
-\subsection{Not-Yet-Implemented Features}
+
+	\subsection{Not-Yet-Implemented Features}
 Here I list some features that I started to implement, but by now are not yet completed. They are listed just for explain why in the code there might be some reference to structures, methods,etc that might seem not connected to the goals of the project.
-\subsubsection{Alive Messages}
+
+		\subsubsection{Alive Messages}
+	
 The Alive procedure was one of the first features on which I started to work at the begining of the development. It can be said that it was the \emph{parent of CPR}. However, Alive was rather much complex than CPR, it involved both Data and NetworkLayer, and even a specific \textit{timer} was used. The NetworkLayer was \textit{constantly} looking at the \emph{state} of any parents, so that when a communication from a parent is received, the state of such parent is set to ALIVE, on the contrary whenever the alive timer is triggered, the state of each parent is decremented. For each value of the state of a parent, a behavior is codified, such that:
-\begin{itemize}
-	\item 3 (ALIVE): the parent is alive, the normal behavior is allowed
-	\item 2 : tollerance level, the behavior will be  kept as normal even in this stage
-	\item 1 : the absence of parent communications is rather suspicious, stop data communications, send an AliveMsg
-	\item 0 (DEAD): the parent is marked as dead, it can be removed and/or substituted
-\end{itemize}
+		\begin{itemize}
+			\item 3 (ALIVE): the parent is alive, the normal behavior is allowed
+			\item 2 : tollerance level, the behavior will be  kept as normal even in this stage
+			\item 1 : the absence of parent communications is rather suspicious, stop data communications, send an AliveMsg
+			\item 0 (DEAD): the parent is marked as dead, it can be removed and/or substituted
+		\end{itemize}
 An Alive Message, was a message with a minimal dummy payload, an integer containing the nodeId of the sender, for which a acks is explicitly requested. In the original idea, the Alive mechaninsm was planned to be applied to all version, so that even with the Best-Effort a way to substitute broken/bad links would be available.
-\subsubsection{Other Balancing Metrics}
+
+		\subsubsection{Other Balancing Metrics}
+	
 The balancing of the load over a count mantained locally by each node, could be improved somehow. That was my tought, so I started thinking what can be exploited to have a better view of the congestion of parent nodes. I reached two possibilities: \textbf{buffer usage} and \textbf{traffic} of parent. The first idea comes from the fact that if we can retrieve the buffer usage of each parent, it would be nice to send the traffic to the one with the \emph{highest buffer availability}. Moreover I looked over the buffer usage and it turned out that with my settings for the timers that \emph{send messages} (from the buffer) and \emph{generate messages} (insert in the buffer), which are respectively set to \textit{5s} and \textit{10,5s}, if we use a time $\tau_i$, where $\tau_{i+1}-\tau_{i}=5s$, a buffer of size \emph{n}, will be filled at time $\tau_n$ when having two descendants (e.g. two children or a child and a grandchild). So a tuning over the buffer might be a good idea.
 \\ The traffic metric, looks over the forwarded messaged FROM each parent. This is much more general than the previous, but can anyway give the flavour of the congestion of a node.
 \\Both the metrics are quite easy to implement, but the problem consists in the rate at which the refresh of that information is provvided to the children. In fact if it is too large (e.g. beaconing period) the information could became rather old and the balancing cannot be such effective, on the other hand if the refresh happens too often it could introduce too much overhead into the network.
-\subsubsection{Rebuild Messages}
+
+		\subsubsection{Rebuild Messages}
+
 This was meant to be an \textit{extension} of CPR, where a \textbf{request of rebuild} (ROR\_MSG) would be routed to the sink in order to ask for a new \emph{beacon}. For the \textit{rebuild period} I thought at two possibilities:
-\begin{itemize}
-	\item Single rebuild beacon, the sink sends a single rebuild beacon for each request
-	\item Adaptive beacon, inspired to the one of \emph{CTP\footnote{CTPlink}} (which is itself inspired to \emph{Trickle\footnote{Tricklelink}}), but applied to the receipt of rebuild messages, so that whenever a ROR\_MSG is received by the sink the beacong period is set to a minimum, while at each activation of the beaconing timer, the period is doubled up to the max value.
-\end{itemize}
-Inspired by the CTP/Trickle \textit{adaptive timings}, Single Rebuild, Adaptive Rebuild
-\subsection{Tools}
-\subsubsection{Bash script}
-\label{sec:bash}
+			\begin{itemize}
+				\item Single rebuild beacon, the sink sends a single rebuild beacon for each request
+				\item Adaptive beacon, inspired to the one of \emph{CTP\footnote{Collection Tree Protocol: http://www.tinyos.net/tinyos-2.x/doc/html/tep123.html}} (which is itself inspired to \emph{Trickle\footnote{Trickle Algorithm: http://www.cs.berkeley.edu/~pal/pubs/trickle-nsdi04.pdf}}), but applied to the receipt of rebuild messages, so that whenever a ROR\_MSG is received by the sink the beacong period is set to a minimum, while at each activation of the beaconing timer, the period is doubled up to the max value.
+			\end{itemize}
+		
+	\subsection{Tools}
+	
+		\subsubsection{Bash script}
+		\label{sec:bash}
+		
 I wrote a bash script to make easier the job of running series of tests and perform data analysis. By typing "./test help", the script returns a small documentation. The script call format is "./test test\_mode number\_of\_tests number\_of\_nodes name\_of\_test python\_script\_name [compile]" where \textit{test\_mode} can be:
 \begin{itemize}
 	\item normal, for running the best-effort version of the project
@@ -222,51 +240,224 @@ I wrote a bash script to make easier the job of running series of tests and perf
 	\item reltree, for running the reliable tree-single-parent version
 \end{itemize}
 The \textit{python\_script\_name} is the name of the python script used for the simulations and could be one of those named in Section~\ref{sec:howto}.
-\subsubsection{AWK}
-The AWK\footnote{AWKlink} language was used in order to work over the data gathered by the simulations and make some stastistics over them.
+
+		\subsubsection{AWK}
+
+The AWK\footnote{AWK wikipage: https://en.wikipedia.org/wiki/AWK} language was used in order to work over the data gathered by the simulations and make some stastistics over them.
+
+		\subsubsection{DOT}
+		
+I used DOT\footnote{DOT wikipage: http://en.wikipedia.org/wiki/DOT\_\%28graph\_description\_language\%29} language to give a graphical description of the network graphs
 \clearpage
 %----------------------------------------------------------------------------------------
 %	SECTION 3 - Experimental results
 %----------------------------------------------------------------------------------------
 
 \section{Experimental Results}
-\subsection{Newlink Results}
-\subsection{Test Results}
-\subsection{Stable Results}
-\subsection{25 Results}
-\subsection{49 Results}
+	In this section I will show the result of a series of sequential test ran for all version of the project. Each subsection contains the results of a specific scenario, whose detailed description can be found in \emph{Appendix A}. In order to do a comparison, for each testng session I took the forwarded message to each parent from each node (as suggested by the project specifications) and the number of arrived packet for each node, which can rate the reliability of the tested version. Anyway, please note that only some results are reported here, but the complete list of results can be seen in the subdirectory \textit{results} of the project.
+\\In this section the names of the tests are shortened to fit into tables, so that:
+	\begin{itemize}
+		\item \textbf{betree}, for the best-effort 1-1 version of the tree procotol
+		\item \textbf{belbrp}, for the best-effort 1-1 version of the LBRP
+		\item \textbf{reltree}, for the reliable 1-1 version of the tree protocol
+		\item \textbf{rellbrp}, for the reliable 1-1 version of the LBRP
+		\item \textbf{cpr}, for the CPR version of the LBRP
+	\end{itemize}
+	\subsection{Newlink Results}
+In this scenario, the connectivity in the network is subject to some changes, infact 3 links are removed in the early phase of the simulation (30\% of the simulation time), and two links are added respectively at 55\% and 60\%.
 
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{cc}
+				\includegraphics[scale=.35]{graphs/newlink_4_add2}&\includegraphics[scale=.35]{graphs/newlink_4tree_add2}\\
+			\end{tabular}
+			\caption{Newlink Final stage}
+			\label{tab:comparisonNewlink}
+		\end{table}
+		
+When the network reaches its final configuration, the different behavior between the Tree protocol and the LBRP can be easily seen from the Table~\ref{tab:newF2}:
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{TEST NAME}} & \multicolumn{8}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-9}
+					& 0 & 1 & 2 & 3 & 4 & 5 & 6 & TOT \\ \hline
+				    betree & 54.94 & - & - & 118.58 & - & - & $\sim$1 & 174.41 \\ \hline
+				    belbrp & 54.82 & - & - & 59.22 & - & - & 47.88 & 161.92 \\ \hline
+				    reltree & 9.30 & - & - & 103.92 & - & - & $\sim$1 & 113.98 \\ \hline
+   				    rellbrp & 9.22 & - & - & 59.76 & - & - & 45.85 & 114.83 \\ \hline
+				    cpr & 9.33 & - & - & 96.08 & - & - & 32.72 & 138.13 \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages forwarded by node 2}
+			\label{tab:newF2}
+		\end{table}
+It can be seen that both versions of the tree protocol report only an average of forwarded messages to 6 less to 1, probably due to some temporary problem inside the network. The majority of messages are forwarded to 3, because it is the lower ID parent candidate. On the other hand, when the link between 2 and 6 came up, 6 is added as parent and in order to balance the load, the messages are sent almost to 6 in order to bring the two parents to the same level of load.
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{MSG FROM}} & \multicolumn{5}{c|}{\textbf{TEST NAME}} \\ \cline{2-6}
+					& betree & belbrp & reltree & rellbrp & cpr \\ \hline
+					2 & 13.06 & 11.48 & 22.08 & 19.48 & 30.48 \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages arrived to sink from 2}
+			\label{tab:newA2}
+		\end{table}
+The table above (Table~\ref{tab:newA2}) shows the number of messages originally sent by 2 which reached the sink. The reliable versions got a way better deliver rate if compared to the forwarding messages report in Table~\ref{tab:newF2}. In particular, the CPR version did a really good job by having more than the double of best-effort versions and one third more than reltree and rellbrp.
+	\subsection{Test Results}
+Here the same 3 links of Newlink are removed in the early phase, while a new node 7 is added in the late phase of the simulation (75\%). The node is configured to have two links one to the sink and one to the periphery of the network (node 5), which should force the network to reconstruct the routing schema. Moreover the link between between 1 and the sink has a really low gain, which makes the communication chain till the sink a bit problematic.
+		\begin{figure}[H]
+			\begin{center}
+				\includegraphics[scale=.4]{graphs/test_3_new}
+				\caption{Final configuration of Test scenario}
+				\label{fig:testFinal}
+			\end{center}
+		\end{figure}
+Even in this case, could be interesting to see the forwarded messages from 2:
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{TEST NAME}} & \multicolumn{9}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-10}
+					& 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & TOT \\ \hline
+				    betree & 57.42 & - & - & 116.14 & - & 1.56 & - & - & 175.13 \\ \hline
+				    belbrp & 52.95 & - & - & 105.03 & - & 2.44 & - & - & 160.41 \\ \hline
+				    reltree & 10.52 & - & - & 107.33 & - & 1.23 & - & - & 119.07 \\ \hline
+   				    rellbrp & 10.57 & - & - & 109.49 & - & 2.86 & - & - & 122.92 \\ \hline
+				    cpr & 10.63 & - & - & 55.70 & - & 4.8 & - & - & 71.14 \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages forwarded by node 2}
+			\label{tab:testF2}
+		\end{table}
+In the table above, the gap of \textit{total forwardings} between cpr and the others is quite big, and that need some investigation over the topology. Anyway with a bit of debug it turned out, that the loosy gain between 1 and the sink, which was the gateway for all the network until the arrival of 7, was the cause of the trigger of the cascade parent removal, which starting from 1 stopped all the network until the next successful beacon. Another thing that can be said from the Table~\ref{tab:testF2} is that the tests with LBRP and its variants seems to be faster to adapt to the topology changes. 
+	\subsection{Stable Results}
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{cc}
+				\includegraphics[scale=.35]{graphs/stable_1_routing}&\includegraphics[scale=.35]{graphs/stable_1tree_routing}\\
+			\end{tabular}
+			\caption{Stable Routing}
+			\label{tab:comparisonStable}
+		\end{table}
+		
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{TEST NAME}} & \multicolumn{9}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-10}
+					& 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & TOT \\ \hline
+				    betree & - & - & - & - & - & - & - & - & - \\ \hline
+				    belbrp & - & 61.19 & 61.91 & 61.90 & - & - & - & - & 185 \\ \hline
+				    reltree & - & - & - & - & - & - & - & - & - \\ \hline
+   				    rellbrp & - & 52.27 & 52.70 & 52.34 & - & - & - & - & 157.31 \\ \hline
+				    cpr & - & 50.77 & 50.51 & 49.49 & - & - & - & - & 150.86 \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages forwarded by node 5}
+			\label{tab:stableF5}
+		\end{table}
+		
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{MSG FROM}} & \multicolumn{5}{c|}{\textbf{TEST NAME}} \\ \cline{2-6}
+					& betree & belbrp & reltree & rellbrp & cpr \\ \hline
+					5 & - & - & - & - & - \\ \hline
+					6 & - & - & - & - & - \\ \hline
+					7 & - & - & - & - & - \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages arrived to sink from 2}
+			\label{tab:stableArrivals}
+		\end{table}
+		
+	\subsection{Random topologies Results}
+The LBRP seems to work as expected when the topology is randomly generated and the number of nodes larger than in the previous scenarios. The 25 and 49 nodes generated topologies gives the flavour of how the protocol works. Take for instance the forwardings of the node 24 of the test made over the 25 nodes scenario (\textbf{NOTE}: the results are cut to show only some of the meaningfull data, the complete results can be seen on the file \textit{forwarded\_24.csv}):
+
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
+					& 0 & 1 & 2 & 3 & 4 & 5& 6 & 7 & 8 & TOT \\ \hline
+				    betree & - & - & 47.07 & - & 32.66 & $\sim$1 & 3.94 & - & 3.31 & 90.27 \\ \hline
+				    belbrp & 3.44 & 13.27 & 9.36 & - & 7.05 & 8.24 & 18.25 & 7.99 & 13.69 & 140.32\\ \hline
+				    reltree & - & - & - & 24.42 & - & - & - & - & 2.23 & 29\\ \hline
+   				    rellbrp & - & 3.55 & 1.69 & - & 2.41 & 1.34 & 3.61 & 2.25 & 4.16 & 36.71\\ \hline
+				    cpr & - & 9.5 & 8.98 & 8.15 & 7.22 & 1.69 & 9.17 & 5.74 & 13.62 & 130.72\\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages forwarded by node 5}
+			\label{tab:25F24}
+		\end{table}
+
+
+il fatto che CPR abbia scelto 0 come proprio padre può essere spiegato dal fatto che oltre ai semplici beacons generati dalla sink, CPR prevede anche un messaggio di "recovery" da parte dei neighbors che ricevono un NO\_PARENT\_MSG, il che può aver fortuitamente dato luogo all'arrivo di uno di questi messaggi di recovery al nodo 24 e quindi alla scelta di 0 come parent.
+\clearpage
 %----------------------------------------------------------------------------------------
 %	SECTION 4
 %----------------------------------------------------------------------------------------
 
-\section{Results and Conclusions}
-
-The atomic weight of magnesium is concluded to be, as determined by the stoichiometry of its chemical combination with oxygen. This result is in agreement with the accepted value.
-
-\begin{figure}[htbp]
-\begin{center}
-\includegraphics[scale=.35]{graphs/newlink_0_start} % Include the image placeholder.png
-\caption{Newlink starting scenario}
-\end{center}
-\end{figure}
-
-\begin{table}[ht]
-\caption{A table arranging  images}
-\centering
-\begin{tabular}{cc}
-\includegraphics[scale=.45]{graphs/newlink_0_start}&\includegraphics[scale=.35]{graphs/newlink_1_routing}\\
- 
-\includegraphics[scale=.45]{graphs/newlink_2_remove}&\includegraphics[scale=.45]{graphs/newlink_3_add1}\\
-\end{tabular}
-\label{tab:gqwt}
-\end{table}
-
-
+\section{Conclusions}
+\textbf{1}come visto nelle topologie piu grandi generate randomictoamente, il link quality incide pesantemente sulle performance degli algoritmi e sulle scelte che questi prendono. Ritengo perciò che per ottenere risultati più precisia sia necessario integrare nei protocolli di routing un link quality estimator (RSSI,LQI,ETX), al fine di stabilire la bontà di un vicino prima di sceglierlo come padre, altrimenti si può incorrere in scelte dettate dall'arrivo di beacons fortuiti tramite link poco affidabili che possono compromettere il corretto funzionamento della rete.
+A data aggregation scheme could be an interesting choice, to avoid problems from the buffer congestion.
+\clearpage
 %----------------------------------------------------------------------------------------
 %	APPENDIXES
 %----------------------------------------------------------------------------------------
-
+\section{Appendixes}
+\subsection{Appendix A: Scenarios in-depth look}
+\subsubsection{Newlink}
+	\begin{table}[H]
+		\centering
+		\begin{tabular}{*{2}{m{0.48\textwidth}}}
+			\hline
+			This is some text&\begin{center}\includegraphics[scale=.4]{graphs/newlink_0_start}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/newlink_1_routing}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/newlink_2_remove}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/newlink_3_add1}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/newlink_4_add2}\end{center}\\
+			\hline
+		\end{tabular}
+		\label{tab:newlinkIndepth}
+	\end{table}
+\subsubsection{Test}
+	\begin{table}[H]
+		\centering
+		\begin{tabular}{*{2}{m{0.48\textwidth}}}
+			\hline
+			This is some text&\begin{center}\includegraphics[scale=.4]{graphs/test_0_start}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/test_1_routing}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/test_2_remove}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/test_3_new}\end{center}\\
+			\hline
+		\end{tabular}
+		\label{tab:newlinkIndepth}
+	\end{table}
+\subsubsection{Stable}
+	\begin{table}[H]
+		\centering
+		\begin{tabular}{*{2}{m{0.48\textwidth}}}
+			\hline
+			This is some text&\begin{center}\includegraphics[scale=.4]{graphs/stable_0_start}\end{center}\\
+			\hline
+			stica&\begin{center}\includegraphics[scale=.4]{graphs/stable_1_routing}\end{center}\\
+			\hline
+		\end{tabular}
+		\label{tab:newlinkIndepth}
+	\end{table}
+\subsection{Stica}
 \begin{table}[ht]
 \caption{Newlink example}
 \centering
