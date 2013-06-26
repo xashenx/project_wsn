@@ -99,7 +99,7 @@ implementation
 
 	event void TimerSend.fired(){
 		#ifdef REMOVEPARENT
-		if(tries>2){
+		if(tries>CPR_DATA_TRIGGER){
 			dbg("data","removing parent from dataL: %u\n",my_parent);
 			signal DataToNetwork.removeParent(my_parent);
 			my_parent = signal DataToNetwork.nextParent();

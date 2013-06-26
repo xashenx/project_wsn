@@ -288,10 +288,12 @@ implementation{
 					else{
 						// WHEN AT LEAST ANOTHER PARENT IS PRESENT
 						// REMOVE THE PARENT FROM THE STRUCTURE
+						uint16_t nextP = signal DataToNetwork.nextParent();
 						#ifdef ROUTING
 							dbg("routing","REMOVE\tPARENT\t%u\tCOST\t%u>%u\n",temp_parent,temp_cost,current_cost);
 						#endif
 						call removeParentC(call checkForParent(temp_parent));
+						signal NetworkToData.parentUpdate(nextP);
 					}
 				}
 			}

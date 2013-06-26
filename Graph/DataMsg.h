@@ -15,6 +15,9 @@ enum
   AM_DATAMSG = 22,
   SEND_PERIOD = 5000,// 5 seconds
   MESSAGE_PERIOD = 10500,// 10.5 seconds
+  #ifdef REMOVEPARENT
+  CPR_DATA_TRIGGER = 2,// number of tries before remove a parent
+  #endif
 /*  SEND_PERIOD = 1000,
   MESSAGE_PERIOD = 3500,*/
 };
