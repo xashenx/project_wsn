@@ -213,7 +213,7 @@ The Alive procedure was one of the first features on which I started to work at 
 An Alive Message, was a message with a minimal dummy payload, an integer containing the nodeId of the sender, for which a acks is explicitly requested. In the original idea, the Alive mechaninsm was planned to be applied to all version, so that even with the Best-Effort a way to substitute broken/bad links would be available.
 
 		\subsubsection{Other Balancing Metrics}
-	
+		\label{sec:balancingMetrics}
 The balancing of the load over a count mantained locally by each node, could be improved somehow. That was my tought, so I started thinking what can be exploited to have a better view of the congestion of parent nodes. I reached two possibilities: \textbf{buffer usage} and \textbf{traffic} of parent. The first idea comes from the fact that if we can retrieve the buffer usage of each parent, it would be nice to send the traffic to the one with the \emph{highest buffer availability}. Moreover I looked over the buffer usage and it turned out that with my settings for the timers that \emph{send messages} (from the buffer) and \emph{generate messages} (insert in the buffer), which are respectively set to \textit{5s} and \textit{10,5s}, if we use a time $\tau_i$, where $\tau_{i+1}-\tau_{i}=5s$, a buffer of size \emph{n}, will be filled at time $\tau_n$ when having two descendants (e.g. two children or a child and a grandchild). So a tuning over the buffer might be a good idea.
 \\ The traffic metric, looks over the forwarded messaged FROM each parent. This is much more general than the previous, but can anyway give the flavour of the congestion of a node.
 \\Both the metrics are quite easy to implement, but the problem consists in the rate at which the refresh of that information is provvided to the children. In fact if it is too large (e.g. beaconing period) the information could became rather old and the balancing cannot be such effective, on the other hand if the refresh happens too often it could introduce too much overhead into the network.
@@ -334,6 +334,7 @@ Even in this case, could be interesting to see the forwarded messages from 2:
 		\end{table}
 In the table above, the gap of \textit{total forwardings} between cpr and the others is quite big, and that need some investigation over the topology. Anyway with a bit of debug it turned out, that the loosy gain between 1 and the sink, which was the gateway for all the network until the arrival of 7, was the cause of the trigger of the cascade parent removal, which starting from 1 stopped all the network until the next successful beacon. Another thing that can be said from the Table~\ref{tab:testF2} is that the tests with LBRP and its variants seems to be faster to adapt to the topology changes. 
 	\subsection{Stable Results}
+This test was done on a stable topology with a good connectivity.
 		\begin{table}[H]
 			\centering
 			\begin{tabular}{cc}
@@ -342,16 +343,16 @@ In the table above, the gap of \textit{total forwardings} between cpr and the ot
 			\caption{Stable Routing}
 			\label{tab:comparisonStable}
 		\end{table}
-		
+This time the interesting part of the test resides in the node 5, because, as can be seen in Table~\ref{tab:comparisonStable}, the forwarding results of the node 5 can show the differences between the routing protocols and because it is the head of a node chain (5 <--> 6 <--> 7), which can show how the protocols behave on chain of nodes.
 		\begin{table}[H]
 			\begin{center}
 			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
 				    \hline
 				    \multirow{2}{*}{\textbf{TEST NAME}} & \multicolumn{9}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-10}
 					& 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & TOT \\ \hline
-				    betree & - & - & - & - & - & - & - & - & - \\ \hline
+				    betree & - & 183.01 & - & 1.99 & - & - & - & - & 185 \\ \hline
 				    belbrp & - & 61.19 & 61.91 & 61.90 & - & - & - & - & 185 \\ \hline
-				    reltree & - & - & - & - & - & - & - & - & - \\ \hline
+				    reltree & - & 156.97 & - & 1.73 & - & - & - & - & 158.74 \\ \hline
    				    rellbrp & - & 52.27 & 52.70 & 52.34 & - & - & - & - & 157.31 \\ \hline
 				    cpr & - & 50.77 & 50.51 & 49.49 & - & - & - & - & 150.86 \\ \hline
 			    \end{tabular}
@@ -359,22 +360,22 @@ In the table above, the gap of \textit{total forwardings} between cpr and the ot
 			\caption{Messages forwarded by node 5}
 			\label{tab:stableF5}
 		\end{table}
-		
+The two besteffort versions (and even reltree and rellbrp) show the different behavior of the tree protocol and LBRP, in fact as Table~\ref{tab:comparisonStable} depicts, the tree protocol forwards almost everything to node 1 (with a small amount which is forwarded to node 3 because of a temporary choice of 3 as parent), while LBRP divides the traffic between 1,2 and 3.
 		\begin{table}[H]
 			\begin{center}
 			    \begin{tabular}{|c|c|c|c|c|c|}
 				    \hline
 				    \multirow{2}{*}{\textbf{MSG FROM}} & \multicolumn{5}{c|}{\textbf{TEST NAME}} \\ \cline{2-6}
 					& betree & belbrp & reltree & rellbrp & cpr \\ \hline
-					5 & - & - & - & - & - \\ \hline
-					6 & - & - & - & - & - \\ \hline
-					7 & - & - & - & - & - \\ \hline
+					5 & 21.92 & 16.41 & 9.25 & 18.20 & 16.86 \\ \hline
+					6 & 47.17 & 42.91 & 36.38 & 42.91 & 50.08 \\ \hline
+					7 & 46.85 & 40.10 & 35.32 & 37.98 & 45.52 \\ \hline
 			    \end{tabular}
 			\end{center}	
-			\caption{Messages arrived to sink from 2}
+			\caption{Messages arrived to sink from 5,6,7}
 			\label{tab:stableArrivals}
 		\end{table}
-		
+From Table~\ref{tab:stableArrivals} a couple of thing can be observed. The performances of the besteffort version are higher than the standard reliable ones (reltree,rellbrp), and are almost the same of CPR. This can be explained by the good connectivity, so that the probability that a message is sent correctly is high, which implies that the besteffort approach can land a good number of deliveries to the sink, while whenever a fail happen in the reliable versions (in the send itself or in the ack delivery), it turns out in an overhead which is a waste in such scenario. Furthermore, the fact that the less messages from the head node (5) are received than the ones from its descendants, can be due to the buffer problem, which was brefly took into consideration in Section~\ref{sec:balancingMetrics} at page ~\pageref{sec:balancingMetrics}.
 	\subsection{Random topologies Results}
 The LBRP seems to work as expected when the topology is randomly generated and the number of nodes larger than in the previous scenarios. The 25 and 49 nodes generated topologies gives the flavour of how the protocol works. Take for instance the forwardings of the node 24 of the test made over the 25 nodes scenario (\textbf{NOTE}: the results are cut to show only some of the meaningfull data, the complete results can be seen on the file \textit{forwarded\_24.csv}):
 
@@ -384,11 +385,11 @@ The LBRP seems to work as expected when the topology is randomly generated and t
 				    \hline
 				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
 					& 0 & 1 & 2 & 3 & 4 & 5& 6 & 7 & 8 & TOT \\ \hline
-				    betree & - & - & 47.07 & - & 32.66 & $\sim$1 & 3.94 & - & 3.31 & 90.27 \\ \hline
-				    belbrp & 3.44 & 13.27 & 9.36 & - & 7.05 & 8.24 & 18.25 & 7.99 & 13.69 & 140.32\\ \hline
-				    reltree & - & - & - & 24.42 & - & - & - & - & 2.23 & 29\\ \hline
-   				    rellbrp & - & 3.55 & 1.69 & - & 2.41 & 1.34 & 3.61 & 2.25 & 4.16 & 36.71\\ \hline
-				    cpr & - & 9.5 & 8.98 & 8.15 & 7.22 & 1.69 & 9.17 & 5.74 & 13.62 & 130.72\\ \hline
+				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}47.07\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}32.66\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}3.94\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.31\end{footnotesize} & \begin{footnotesize}90.27\end{footnotesize} \\ \hline
+				    belbrp & \begin{footnotesize}3.44\end{footnotesize} & \begin{footnotesize}13.27\end{footnotesize} & \begin{footnotesize}9.36\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}7.05\end{footnotesize} & \begin{footnotesize}8.24\end{footnotesize} & \begin{footnotesize}18.25\end{footnotesize} & \begin{footnotesize}7.99\end{footnotesize} & \begin{footnotesize}13.69\end{footnotesize} & \begin{footnotesize}140.32\end{footnotesize}\\ \hline
+				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}24.42\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.23\end{footnotesize} & \begin{footnotesize}29\end{footnotesize}\\ \hline
+   				    rellbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.55\end{footnotesize} & \begin{footnotesize}1.69\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.41\end{footnotesize} & \begin{footnotesize}1.34\end{footnotesize} & \begin{footnotesize}3.61\end{footnotesize} & \begin{footnotesize}2.25\end{footnotesize} & \begin{footnotesize}4.16\end{footnotesize} & \begin{footnotesize}36.71\end{footnotesize}\\ \hline
+				    cpr & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}9.5\end{footnotesize} & \begin{footnotesize}8.98\end{footnotesize} & \begin{footnotesize}8.15\end{footnotesize} & \begin{footnotesize}7.22\end{footnotesize} & \begin{footnotesize}1.69\end{footnotesize} & \begin{footnotesize}9.17\end{footnotesize} & \begin{footnotesize}5.74\end{footnotesize} & \begin{footnotesize}13.62\end{footnotesize} & \begin{footnotesize}130.72\end{footnotesize}\\ \hline
 			    \end{tabular}
 			\end{center}	
 			\caption{Messages forwarded by node 5}
@@ -396,15 +397,15 @@ The LBRP seems to work as expected when the topology is randomly generated and t
 		\end{table}
 
 
-il fatto che CPR abbia scelto 0 come proprio padre può essere spiegato dal fatto che oltre ai semplici beacons generati dalla sink, CPR prevede anche un messaggio di "recovery" da parte dei neighbors che ricevono un NO\_PARENT\_MSG, il che può aver fortuitamente dato luogo all'arrivo di uno di questi messaggi di recovery al nodo 24 e quindi alla scelta di 0 come parent.
+\textbf{NON E' PROPRIO COSI! È IL FATTO DEI NO PARENT MESSAGES CHE PORTA AD AVERE "CASUAL" PARENTS}il fatto che CPR abbia scelto 0 come proprio padre può essere spiegato dal fatto che oltre ai semplici beacons generati dalla sink, CPR prevede anche un messaggio di "recovery" da parte dei neighbors che ricevono un NO\_PARENT\_MSG, il che può aver fortuitamente dato luogo all'arrivo di uno di questi messaggi di recovery al nodo 24 e quindi alla scelta di 0 come parent.
 \clearpage
 %----------------------------------------------------------------------------------------
 %	SECTION 4
 %----------------------------------------------------------------------------------------
 
 \section{Conclusions}
-\textbf{1}come visto nelle topologie piu grandi generate randomictoamente, il link quality incide pesantemente sulle performance degli algoritmi e sulle scelte che questi prendono. Ritengo perciò che per ottenere risultati più precisia sia necessario integrare nei protocolli di routing un link quality estimator (RSSI,LQI,ETX), al fine di stabilire la bontà di un vicino prima di sceglierlo come padre, altrimenti si può incorrere in scelte dettate dall'arrivo di beacons fortuiti tramite link poco affidabili che possono compromettere il corretto funzionamento della rete.
-A data aggregation scheme could be an interesting choice, to avoid problems from the buffer congestion.
+\textbf{1)} Come visto nelle topologie piu grandi generate randomictoamente, il link quality incide pesantemente sulle performance degli algoritmi e sulle scelte che questi prendono. Ritengo perciò che per ottenere risultati più precisia sia necessario integrare nei protocolli di routing un link quality estimator (RSSI,LQI,ETX), al fine di stabilire la bontà di un vicino prima di sceglierlo come padre, altrimenti si può incorrere in scelte dettate dall'arrivo di beacons fortuiti tramite link poco affidabili che possono compromettere il corretto funzionamento della rete.
+\\ \textbf{2)} A data aggregation scheme could be an interesting choice, to avoid problems from the buffer congestion.esempio invio della coda attuale
 \clearpage
 %----------------------------------------------------------------------------------------
 %	APPENDIXES
