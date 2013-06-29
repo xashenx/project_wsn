@@ -83,6 +83,7 @@
 %----------------------------------------------------------------------------------------
 
 \title{
+%\includegraphics[angle=-90,keepaspectration=true,width=8cm]{images/logo}
 \vspace{2in}
 \textmd{\textbf{Load Balanced Routing Protocol}}\\
 \textmd{\normalsize{Wireless Sensor Networks}}\\
@@ -117,11 +118,15 @@ It ends with the experimental results and their analysis.
 %	SECTION 1 - PROJECT SPECIFICATION
 %----------------------------------------------------------------------------------------
 \pagenumbering{arabic}
+\bigskip
+\bigskip
+\bigskip
 \section{Introduction}
 \subsection{Project Specifications}
 The project specifications ask to implement a \emph{Load Balanced Routing Protocol} (LBRP) over \textit{TOSSIM} which is capable to route the data traffic through a wireless sensor network up to a node called \textbf{sink}, which is responsible of the data collection.
 Each node is responsible to mantain its own "routing table", which in this case is represented by a list of \emph{parent nodes} as the next-hop node toward the sink. To balance the traffic among the parents, the node has to check the amount of forwarded message of each parent and verify, for each pair of parents, the following formula: \begin{center}$0 \leq msg_{p_{a}} - msg_{p_{b}} \leq 1$\end{center}
 where $msg_{p_{i}}$ are the messages forwarded to the parent $p_{i}$ of the node.
+\clearpage
 \subsection{How to run the project}
 \label{sec:howto}
 Looking at the project root, the code is contained mainly in two directories: \textbf{Graph} and \textbf{Tree}. The implementation of the LBRP is in the Graph one, while the other contain the \textit{single-parent} implementation, which was used to make some comparison over the developed protocol. The application is \textit{modular}, in the sense that from the same code is possible to compile any subversion of the application. That is made possible through some \emph{preprocessor conditional branches} inside the code (\textit{\#ifdef keyword}), which are triggered when the compilation is done using a specific makefile. These are the makefiles defined so far:
@@ -219,7 +224,7 @@ The balancing of the load over a count mantained locally by each node, could be 
 \\Both the metrics are quite easy to implement, but the problem consists in the rate at which the refresh of that information is provvided to the children. In fact if it is too large (e.g. beaconing period) the information could became rather old and the balancing cannot be such effective, on the other hand if the refresh happens too often it could introduce too much overhead into the network.
 
 		\subsubsection{Rebuild Messages}
-
+			\label{sec:rebuildMessages}
 This was meant to be an \textit{extension} of CPR, where a \textbf{request of rebuild} (ROR\_MSG) would be routed to the sink in order to ask for a new \emph{beacon}. For the \textit{rebuild period} I thought at two possibilities:
 			\begin{itemize}
 				\item Single rebuild beacon, the sink sends a single rebuild beacon for each request
@@ -384,71 +389,93 @@ The two besteffort versions (and even reltree and rellbrp) show the different be
 		\end{table}
 From Table~\ref{tab:stableArrivals} a couple of thing can be observed. The performances of the besteffort version are higher than the standard reliable ones (reltree,rellbrp), and are almost the same of CPR. This can be explained by the good connectivity, so that the probability that a message is sent correctly is high, which implies that the besteffort approach can land a good number of deliveries to the sink, while whenever a fail happen in the reliable versions (in the send itself or in the ack delivery), it turns out in an overhead which is a waste in such scenario. Furthermore, the fact that the less messages from the head node (5) are received than the ones from its descendants, can be due to the buffer problem, which was brefly took into consideration in Section~\ref{sec:balancingMetrics} at page ~\pageref{sec:balancingMetrics}.
 	\subsection{Random topologies Results}
-The LBRP seems to work as expected when the topology is randomly generated and the number of nodes larger than in the previous scenarios. The 25 and 49 nodes generated topologies gives the flavour of how the protocol works. Take for instance the forwardings of the node 24 of the test made over the 25 nodes scenario (\textbf{NOTE}: the results are cut to show only some of the meaningfull data, the complete results can be seen on the file \textit{forwarded\_24.csv}):
-
-		\begin{table}[H]
-			\begin{center}
-			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
-				    \hline
-				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
-					& 0 & 1 & 2 & 3 & 4 & 5& 6 & 7 & 8 & TOT \\ \hline
-				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}47.07\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}32.66\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}3.94\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.31\end{footnotesize} & \begin{footnotesize}90.27\end{footnotesize} \\ \hline
-				    belbrp & \begin{footnotesize}3.44\end{footnotesize} & \begin{footnotesize}13.27\end{footnotesize} & \begin{footnotesize}9.36\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}7.05\end{footnotesize} & \begin{footnotesize}8.24\end{footnotesize} & \begin{footnotesize}18.25\end{footnotesize} & \begin{footnotesize}7.99\end{footnotesize} & \begin{footnotesize}13.69\end{footnotesize} & \begin{footnotesize}140.32\end{footnotesize}\\ \hline
-				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}24.42\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.23\end{footnotesize} & \begin{footnotesize}29\end{footnotesize}\\ \hline
-   				    rellbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.55\end{footnotesize} & \begin{footnotesize}1.69\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.41\end{footnotesize} & \begin{footnotesize}1.34\end{footnotesize} & \begin{footnotesize}3.61\end{footnotesize} & \begin{footnotesize}2.25\end{footnotesize} & \begin{footnotesize}4.16\end{footnotesize} & \begin{footnotesize}36.71\end{footnotesize}\\ \hline
-				    cpr & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}9.5\end{footnotesize} & \begin{footnotesize}8.98\end{footnotesize} & \begin{footnotesize}8.15\end{footnotesize} & \begin{footnotesize}7.22\end{footnotesize} & \begin{footnotesize}1.69\end{footnotesize} & \begin{footnotesize}9.17\end{footnotesize} & \begin{footnotesize}5.74\end{footnotesize} & \begin{footnotesize}13.62\end{footnotesize} & \begin{footnotesize}130.72\end{footnotesize}\\ \hline
-			    \end{tabular}
-			\end{center}	
-			\caption{Messages forwarded by node 24}
-			\label{tab:25F24}
-		\end{table}
+The LBRP seems to work as expected when the topology is randomly generated and the number of nodes larger than in the previous scenarios. The 25 and 49 nodes generated topologies gives the flavour of how the protocol works. Take for instance the forwardings of the node 22 of the test made over the 25 nodes scenario (\textbf{NOTE}: the results are cut to show only some of the meaningfull data, the complete results can be seen on the file \textit{forwarded\_22.csv}):
 		
 		\begin{table}[H]
 			\begin{center}
-			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
 				    \hline
-				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
-					& 0 & 1 & 2 & 3 & 4 & 5& 6 & 7 & 8 & TOT \\ \hline
-				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}33.26\end{footnotesize} & \begin{footnotesize}27.54\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}22.49\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}4.32\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}89.44\end{footnotesize} \\ \hline
-				    belbrp & \begin{footnotesize}16.26\end{footnotesize} & \begin{footnotesize}16.57\end{footnotesize} & \begin{footnotesize}6.16\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}6.14\end{footnotesize} & \begin{footnotesize}5.16\end{footnotesize} & \begin{footnotesize}15.55\end{footnotesize} & \begin{footnotesize}8.71\end{footnotesize} & \begin{footnotesize}10.87\end{footnotesize} & \begin{footnotesize}144.12\end{footnotesize}\\ \hline
-				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}15.05\end{footnotesize} & \begin{footnotesize}10.32\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}12.51\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.40\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}43.12\end{footnotesize}\\ \hline
-   				    rellbrp & \begin{footnotesize}9.74\end{footnotesize} & \begin{footnotesize}9.98\end{footnotesize} & \begin{footnotesize}4.06\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.9\end{footnotesize} & \begin{footnotesize}2.61\end{footnotesize} & \begin{footnotesize}10.35\end{footnotesize} & \begin{footnotesize}6.34\end{footnotesize} & \begin{footnotesize}7.13\end{footnotesize} & \begin{footnotesize}91.59\end{footnotesize}\\ \hline
-				    cpr & \begin{footnotesize}8.03\end{footnotesize} & \begin{footnotesize}24.81\end{footnotesize} & \begin{footnotesize}6.80\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}2.29\end{footnotesize} & \begin{footnotesize}8.03\end{footnotesize} & \begin{footnotesize}25.18\end{footnotesize} & \begin{footnotesize}8.85\end{footnotesize} & \begin{footnotesize}4.89\end{footnotesize} & \begin{footnotesize}127.42\end{footnotesize}\\ \hline
-			    \end{tabular}
-			\end{center}	
-			\caption{Messages forwarded by node E22}
-			\label{tab:25EF22}
-		\end{table}
-		
-		\begin{table}[H]
-			\begin{center}
-			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
-				    \hline
-				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
-					& 0 & 1 & 2 & 3 & 4 & 5& 6 & 7 & 8 & TOT \\ \hline
-				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}35.62\end{footnotesize} & \begin{footnotesize}27.31\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}20.67\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}4.37\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}89.01\end{footnotesize} \\ \hline
-				    belbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}4.06\end{footnotesize} & \begin{footnotesize}5.28\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}6.46\end{footnotesize} & \begin{footnotesize}2.42\end{footnotesize} & \begin{footnotesize}7.32\end{footnotesize} & \begin{footnotesize}1.76\end{footnotesize} & \begin{footnotesize}3.54\end{footnotesize} & \begin{footnotesize}89.31\end{footnotesize}\\ \hline
-				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}16.23\end{footnotesize} & \begin{footnotesize}10.33\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}12.59\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.65\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}44.15\end{footnotesize}\\ \hline
-   				    rellbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.74\end{footnotesize} & \begin{footnotesize}2.91\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.87\end{footnotesize} & \begin{footnotesize}1.12\end{footnotesize} & \begin{footnotesize}4.86\end{footnotesize} & \begin{footnotesize}2.04\end{footnotesize} & \begin{footnotesize}1.53\end{footnotesize} & \begin{footnotesize}54.72\end{footnotesize}\\ \hline
-				    %cpr & \begin{footnotesize}8.03\end{footnotesize} & \begin{footnotesize}24.81\end{footnotesize} & \begin{footnotesize}6.80\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}2.29\end{footnotesize} & \begin{footnotesize}8.03\end{footnotesize} & \begin{footnotesize}25.18\end{footnotesize} & \begin{footnotesize}8.85\end{footnotesize} & \begin{footnotesize}4.89\end{footnotesize} & \begin{footnotesize}127.42\end{footnotesize}\\ \hline
+				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{11}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-12}
+					& 0 & 1 & 2 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11\\ \hline
+				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}35.62\end{footnotesize} & \begin{footnotesize}27.31\end{footnotesize} & \begin{footnotesize}20.67\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}4.37\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize}\\ \hline
+				    belbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}4.06\end{footnotesize} & \begin{footnotesize}5.28\end{footnotesize} & \begin{footnotesize}6.46\end{footnotesize} & \begin{footnotesize}2.42\end{footnotesize} & \begin{footnotesize}7.32\end{footnotesize} & \begin{footnotesize}1.76\end{footnotesize} & \begin{footnotesize}3.54\end{footnotesize} & \begin{footnotesize}3.85\end{footnotesize} & \begin{footnotesize}8.38\end{footnotesize} & \begin{footnotesize}5.56\end{footnotesize}\\ \hline
+				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}16.23\end{footnotesize} & \begin{footnotesize}10.33\end{footnotesize} & \begin{footnotesize}12.59\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.65\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize}\\ \hline
+   				    rellbrp & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}2.74\end{footnotesize} & \begin{footnotesize}2.91\end{footnotesize} & \begin{footnotesize}3.87\end{footnotesize} & \begin{footnotesize}1.12\end{footnotesize} & \begin{footnotesize}4.86\end{footnotesize} & \begin{footnotesize}2.04\end{footnotesize} & \begin{footnotesize}1.53\end{footnotesize} & \begin{footnotesize}2.02\end{footnotesize} & \begin{footnotesize}4.81\end{footnotesize} & \begin{footnotesize}3.39\end{footnotesize}\\ \hline
+				    cpr & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}5.02\end{footnotesize} & \begin{footnotesize}2.56\end{footnotesize} & \begin{footnotesize}2.47\end{footnotesize} & \begin{footnotesize}$\sim$1\end{footnotesize} & \begin{footnotesize}9.67\end{footnotesize} & \begin{footnotesize}4.35\end{footnotesize} & \begin{footnotesize}3.4\end{footnotesize} & \begin{footnotesize}2.22\end{footnotesize} & \begin{footnotesize}5.08\end{footnotesize} & \begin{footnotesize}4.36\end{footnotesize}\\ \hline
 			    \end{tabular}
 			\end{center}	
 			\caption{Messages forwarded by node 22}
-			\label{tab:25F22}
+			\label{tab:25F22P1}
+		\end{table}	
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+				    \hline
+				    \multirow{2}{*}{\textbf{TEST}} & \multicolumn{10}{c|}{\textbf{FORWARDED MESSAGES TO}} \\ \cline{2-11}
+					& 12 & 13 & 15 & 16 & 17 &  18 & 20 & 21 & 23 & TOT \\ \hline
+				    betree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}89.01\end{footnotesize} \\ \hline
+				    belbrp & \begin{footnotesize}1.42\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}3.16\end{footnotesize} & \begin{footnotesize}7.24\end{footnotesize} & \begin{footnotesize}7.21\end{footnotesize} & \begin{footnotesize}7.28\end{footnotesize} & \begin{footnotesize}6.86\end{footnotesize} & \begin{footnotesize}7.25\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}89.31\end{footnotesize} \\ \hline
+				    reltree & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}44.15\end{footnotesize} \\ \hline
+   				    rellbrp & \begin{footnotesize}1.64\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}1.53\end{footnotesize} & \begin{footnotesize}4.04\end{footnotesize} & \begin{footnotesize}4.17\end{footnotesize} & \begin{footnotesize}4.31\end{footnotesize} & \begin{footnotesize}5.11\end{footnotesize} & \begin{footnotesize}4.28\end{footnotesize} & \begin{footnotesize}-\end{footnotesize} & \begin{footnotesize}54.72\end{footnotesize} \\ \hline
+				    cpr & \begin{footnotesize}4.64\end{footnotesize} & \begin{footnotesize}2.29\end{footnotesize} & \begin{footnotesize}4.33\end{footnotesize} & \begin{footnotesize}11.03\end{footnotesize} & \begin{footnotesize}9.10\end{footnotesize} & \begin{footnotesize}7.53\end{footnotesize} & \begin{footnotesize}4.48\end{footnotesize} & \begin{footnotesize}5.44\end{footnotesize} & \begin{footnotesize}3.11\end{footnotesize} & \begin{footnotesize}97.14\end{footnotesize} \\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages forwarded by node 22}
+			\label{tab:25F22P2}
 		\end{table}		
 		
-The links of the generated topology are not strong, which lead to the loss of routing packets which implies that the routing protocols sometimes acts as non optimal. Nevertheless, the tests of the tree protocols choose as main parent the node 1, followed by 2 and 4. Instead the versions of LBRP choose 1, as it might be desirable, and 6 as the most stable parents. Anyway 0 is choosen by bellbrp and rellbrp
-\\ In cases like these (and in real world development), would be better to have a link quality estimator to choose 
-\\la rete non ha una connettività stabile, il che porta alla perdita di pacchetti di routing che inficiano le scelte dei protocolli. Tuttavia possiamo notare che i test sui protoccoli a tree, scelgono come predominante il nodo 1 come padre, seguito da 2 e 4. Le versioni di LBRP, come poteva essere auspicabile, scelgono 1 e 6 come padri più stabili. Per quanto riguarda belbrp e rellbrp viene scelto anche 0.
-\textbf{NON E' PROPRIO COSI! È IL FATTO DEI NO PARENT MESSAGES CHE PORTA AD AVERE "CASUAL" PARENTS}il fatto che CPR abbia scelto 0 come proprio padre può essere spiegato dal fatto che oltre ai semplici beacons generati dalla sink, CPR prevede anche un messaggio di "recovery" da parte dei neighbors che ricevono un NO\_PARENT\_MSG, il che può aver fortuitamente dato luogo all'arrivo di uno di questi messaggi di recovery al nodo 24 e quindi alla scelta di 0 come parent.
-\clearpage
+The links of the generated topology are not strong, which lead to the loss of routing packets which implies that the routing protocols sometimes acts as non-optimal. Nevertheless, the tests of the tree protocols choose as main parent the node 1, followed by 2,4 and 6, while the rest of nodes does not take any forwarding from 22. From the tree results, we can infere that 1,2,4,6 have almost the \textit{same cost} to reach the sink, but the beacons reach the node 22 in the inverse order, so that first 6 is chosen, then 4, then 2 and finally 1 as the \textit{smallest id}. Nevertheless when using LBRP 1,2,4 are not chosen so often, that is because the number of parent is fixed (10) until they are removed from the structure (because they got an increased cost or a better way is found), their slots are used.
+\begin{lstlisting}[caption=Routing debug messages of node 22 with rellbrp,label=lst:22]
+DEBUG (22): NEW	SEQNO	21	COST	2{0}
+DEBUG (22): ADD	PARENT	5	SAME	2{0}
+DEBUG (22): ADD	PARENT	4	SAME	2{0}
+DEBUG (22): ADD	PARENT	18	SAME	2{0}
+DEBUG (22): ADD	PARENT	10	SAME	2{0}
+DEBUG (22): ADD	PARENT	2	SAME	2{0}
+DEBUG (22): ADD	PARENT	11	SAME	2{0}
+DEBUG (22): ADD	PARENT	17	SAME	2{0}
+DEBUG (22): ADD	PARENT	9	SAME	2{0}
+DEBUG (22): ADD	PARENT	16	SAME	2{0}
+DEBUG (22): NEW	SEQNO	16	COST	2{9}
+DEBUG (22): NEW	SEQNO	1	COST	2{0}
+DEBUG (22): REMOVE	PARENT	2	COST	3>2
+DEBUG (22): REMOVE	PARENT	18	COST	3>2
+DEBUG (22): REMOVE	PARENT	17	COST	3>2
+DEBUG (22): REMOVE	PARENT	11	COST	3>2
+DEBUG (22): REMOVE	PARENT	10	COST	3>2
+DEBUG (22): REMOVE	PARENT	21	COST	4>2
+\end{lstlisting}
+In the Listing~\ref{lst:22} can be seen the routing debug messages of the node 22 on a rellbrp simulation loop. After the first beacon the parent structure contains {2,4,5,9,10,11,16,17,18,21}, then the maximum number of parents its reached. The second beacon comes from 16, which is already a parent of 22, so no problems come from that and for that application cycle there are no change in the structure. The third and last beacon are forwarded by 1, which is not a parent and because it comes with a cost equal to the current and the structure is full, the last parent (16 in this case) is substituted by 2. During this cycle, the network had some problem which is highlighted by the fact that 6 of the previous parents are removed by the structure due to their increased cost to reach the sink. The CPR version\footnote{if interested the log is on \textit{results/25/routing\_22}} is even more interesting and give some information on the network, infact a lot of NO\_PARENT\_MESSAGES are sent and the network are not able to reach a stable routing. So in general, it can be said that CPR introduces some overhead in this scenario, which is due to the fact that the links are not good and the delivery of the beacons can be seen as a matter of "luck". In cases like these (and in real world development), would be better to have a link quality estimator, which can help in the choice of parents by adding a knowledge of the "goodness" of the link along to their cost.
+		\begin{table}[H]
+			\begin{center}
+			    \begin{tabular}{|c|c|c|c|c|c|}
+				    \hline
+				    %\multirow{2}{*}{\textbf{MSG FROM}} & \multicolumn{5}{c|}{\textbf{TEST NAME}} \\ \cline{2-6}
+				    TEST NAME & MIN & MAX & AVG & VAR & ST.DEV\\ \hline
+					betree & 3 & 34 & 15.87 & 40.27 & 6.35\\ \hline
+					belbrp & 6 & 23 & 13.54 & 15.53 & 3.94\\ \hline
+					reltree & 0 & 73 & 10.24 & 111.24 & 10.55\\ \hline
+					rellbrp & 0 & 30 & 7.90 & 31.17 & 5.58\\ \hline
+					cpr & 2 & 29 & 13.93 & 42.29 & 6.50\\ \hline
+			    \end{tabular}
+			\end{center}	
+			\caption{Messages arrived to sink from 22}
+			\label{tab:25Arrivals22}
+		\end{table}
+
+Anyway from the Table~\ref{tab:25Arrivals22} it can be seen that even if some overhead was introduced by the CPR algorithm, the performance of the protocol were near to the one of the best-effort tree and by looking at the results of other nodes, in the majority of the cases the delivered messages are even more than the ones done in the other versions.
+
+
+%\\In cases like these (and in real world development), would be better to have a link quality estimator to choose 
+%\\la rete non ha una connettività stabile, il che porta alla perdita di pacchetti di routing che inficiano le scelte dei protocolli. Tuttavia possiamo notare che i test sui protoccoli a tree, scelgono come predominante il nodo 1 come padre, seguito da 2 e 4. Le versioni di LBRP, come poteva essere auspicabile, scelgono 1 e 6 come padri più stabili. Per quanto riguarda belbrp e rellbrp viene scelto anche 0.
+%\textbf{NON E' PROPRIO COSI! È IL FATTO DEI NO PARENT MESSAGES CHE PORTA AD AVERE "CASUAL" PARENTS}il fatto che CPR abbia scelto 0 come proprio padre può essere spiegato dal fatto che oltre ai semplici beacons generati dalla sink, CPR prevede anche un messaggio di "recovery" da parte dei neighbors che ricevono un NO\_PARENT\_MSG, il che può aver fortuitamente dato luogo all'arrivo di uno di questi messaggi di recovery al nodo 24 e quindi alla scelta di 0 come parent.
 %----------------------------------------------------------------------------------------
 %	SECTION 4
 %----------------------------------------------------------------------------------------
 
 \section{Conclusions}
-\textbf{1)} Come visto nelle topologie piu grandi generate randomictoamente, il link quality incide pesantemente sulle performance degli algoritmi e sulle scelte che questi prendono. Ritengo perciò che per ottenere risultati più precisia sia necessario integrare nei protocolli di routing un link quality estimator (RSSI,LQI,ETX), al fine di stabilire la bontà di un vicino prima di sceglierlo come padre, altrimenti si può incorrere in scelte dettate dall'arrivo di beacons fortuiti tramite link poco affidabili che possono compromettere il corretto funzionamento della rete.
-\\ \textbf{2)} A data aggregation scheme could be an interesting choice, to avoid problems from the buffer congestion.esempio invio della coda attuale
+In general the performances of LBRP was good and the algorithm performs as expected. Sometimes the overhead, introduced by the need of using a specific structure and the routines needed for the load balancing, were affecting the numbers of forwarding w.r.t. the tree protocol, but the differences was almost negligible. Even if some tweak is still needed, the CPR was working well, but when I will have some time I will implement the \textit{rebuild messages}\footnote{Sec~\ref{sec:rebuildMessages} at page~\pageref{sec:rebuildMessages}} feature to see its influence on the routing process.
+However, as shown for the bigger and random topologies, the quality of the channel and link have a huge impact on the performances of the algorithms e on their choices.I think that in order to obtain better results, would be necessary to integrate some kind of lin quality estimator (RSSI,LQI,ETX), so that a metric on the communication environment can help to choose whether a neighbor can be good parent or not. Without that, the routing protocols might be subjected to the delivery of beacons from not-so-reliable links, which can compromise the operating principle of the network. Moreover, the introduction of a data aggregation scheme could be an interesting choice to enhance the performance on the data layer, which might prevent the buffer congestion problem. For instance, the whole current buffer can be forwarded, so that at each trigger of the send timer, the buffer is emptied. However it should be better analysed, because in some scenario it could lead to "bottle-neck" problem on some nodes.
 \clearpage
 %----------------------------------------------------------------------------------------
 %	APPENDIXES
