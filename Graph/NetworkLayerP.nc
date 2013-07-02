@@ -262,12 +262,14 @@ implementation{
 				}else if (!parent && current_cost == temp_cost){
 					// IN THE GRAPH TOPOLOGY ROUTING WE WILL PUT AS PARENTS
 					// NODES WITH THE SAME CURRENT_COST
-					dbg("routing","CHECK\tPARENT\t%u\tSAME\t%u{%u}\n",temp_parent,temp_cost,position);
 					/*if(TOS_NODE_ID==6 && temp_parent == 3){
 						current_parent = temp_parent;
 						signal NetworkToData.parentUpdate(current_parent);
 					}*/
 					if(active_parents<MAX_PARENTS){
+						#ifdef ROUTING
+						dbg("routing","ADD\tPARENT\t%u\tSAME\t%u{%u}\n",temp_parent,temp_cost,position);
+						#endif
 						parents[active_parents].id = temp_parent;
 						#ifdef ALIVE
 						parents[active_parents].state = HEALTHY;
@@ -368,7 +370,7 @@ implementation{
 			//parents[result].forwarded += 1;
 		}
 		else
-			dbg("data","1ERROR\tNO\tPARENT\tFOUND\t%u\n",parent);
+			dbg("data","MESSAGE\tSENT\tTO\tPREVIOUS\tPARENT\t%u\n",parent);
 	}
 
 #ifdef REMOVEPARENT

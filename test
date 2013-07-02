@@ -96,18 +96,18 @@ for ((i=0;i<$2;i++)); do
 	python $5.py > ../executionOutput
 	for ((j=0;j<$3;j++)); do
 		## PUT THE # OF MESSAGES WHICH REACHED THE SINK DIVIDED BY NODE
-		cat ../executionOutput | grep -i "(0)" | grep -cP "RECEIVED\t$((j+1))" >> ../results/$((j+1)).out
+		cat ../executionOutput | grep -i "(0)" | grep -cP "RECEIVED\t$((j+1))\t" >> ../results/$((j+1)).out
 		for ((k=0;k<$(($3+1));k++)); do
 			## SAVES THE MESSAGES FORWARDED FROM EACH NODE DIVIDED BY PARENT
 			if [ $k = 0 ]; then
-				tot=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
-				tmp=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
+				tot=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -cP "TO\t$k:")
+				tmp=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -cP "TO\t$k:")
 			else
-				current=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:")
+				current=$(cat ../executionOutput | grep -i "($((j+1)))" | grep -cP "TO\t$k:")
 				tot=$(( tot + current))
 				tmp=$tmp\\t$current
 			fi
-			cat ../executionOutput | grep -i "($((j+1)))" | grep -c "$k:" >> ../results/$((j+1))_$k.out
+			cat ../executionOutput | grep -i "($((j+1)))" | grep -c "TO\t$k:" >> ../results/$((j+1))_$k.out
 		done
 		echo -e "$tmp\\t$tot" >> ../results/forw_$((j+1)).out
 	done
