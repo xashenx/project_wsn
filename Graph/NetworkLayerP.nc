@@ -210,11 +210,11 @@ implementation{
 
 				}else{
 				// REACHING THE NODE AS FIRST WITH A SMALLER COST IS COMMON
-				// BUT HERE EVEN A COMMUNICATION WITH A GREATER COST IT TAKEN
+				// BUT HERE EVEN A COMMUNICATION WITH A GREATER COST IS TAKEN
 				// INTO CONSIDERATION, BECAUSE IF IT HAS ARRIVED AS FIRST,
 				// MAYBE THE FORMER PARENTS ARE NOT ABLE TO COMMUNICATE ANYMORE
 				//
-				// SO IN BOTH CASES WE RESET THE STRUCTURE AND PUT THE NEW PARENT
+				// SO IN BOTH CASES WE RESET THE STRUCTURE AND ADD THE NEW PARENT
 					active_parents = 1;
 					if(parent){
 						parents[0].forwarded = parents[position].forwarded;
@@ -230,13 +230,13 @@ implementation{
 					parents[0].state = HEALTHY;
 					#endif
 					signal NetworkToData.parentUpdate(temp_parent);
+					call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 				}
 				current_seq_no = temp_seq_no;
 				current_cost = temp_cost;
 				#ifdef ROUTING
 				dbg("routing", "NEW\tSEQNO\t%u\tCOST\t%u{%u}\n",temp_parent,current_cost,position);
 				#endif
-				call TimerNotification.startOneShot(call Random.rand16() % RANDOM_MAX);
 			} else {
 				if(current_cost > temp_cost){
 					active_parents = 1;

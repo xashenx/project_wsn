@@ -276,7 +276,7 @@ The balancing of the load over a count mantained locally by each node, could be 
 This was meant to be an \textit{extension} of CPR, where a \textbf{request of rebuild} (ROR\_MSG) would be routed to the sink in order to ask for a new \emph{beacon}. For the \textit{rebuild period} I thought at two possibilities:
 			\begin{itemize}
 				\item Single rebuild beacon, the sink sends a single rebuild beacon for each request
-				\item Adaptive beacon, inspired to the one of \emph{CTP\footnote{Collection Tree Protocol: http://www.tinyos.net/tinyos-2.x/doc/html/tep123.html}} (which is itself inspired to \emph{Trickle\footnote{Trickle Algorithm: http://www.cs.berkeley.edu/~pal/pubs/trickle-nsdi04.pdf}}), but applied to the receipt of rebuild messages, so that whenever a ROR\_MSG is received by the sink the beacong period is set to a minimum, while at each activation of the beaconing timer, the period is doubled up to the max value.
+				\item Adaptive beacon, inspired to the one of \emph{CTP\footnote{Collection Tree Protocol: http://www.tinyos.net/tinyos-2.x/doc/html/tep123.html}} (which is itself inspired to \emph{Trickle\footnote{Trickle Algorithm: http://www.cs.berkeley.edu/~pal/pubs/trickle-nsdi04.pdf}}), but applied to the receipt of rebuild messages, so that whenever a ROR\_MSG is received by the sink the beaconing period is set to a minimum, while at each activation of the beaconing timer, the period is doubled up to the max value.
 			\end{itemize}
 		
 	\subsection{Tools}
@@ -403,7 +403,7 @@ This test was done on a stable topology with a good connectivity.
 			\caption{Stable Routing}
 			\label{tab:comparisonStable}
 		\end{table}
-This time the interesting part of the test resides in the node 5, because, as can be seen in Table~\ref{tab:comparisonStable}, the forwarding results of the node 5 can show the differences between the routing protocols and because it is the head of a node chain (5 <--> 6 <--> 7), which can show how the protocols behave on chain of nodes.
+This time the interesting part of the test resides in the node 5, because, as can be seen in Table~\ref{tab:comparisonStable}, the forwarding results of the node 5 can show the differences between the routing protocols and because it is the head of a node chain (5\textless-\\-\textgreater6\textless--\textgreater7), which can show how the protocols behave on chain of nodes.
 		\begin{table}[H]
 			\begin{center}
 			    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
@@ -493,7 +493,7 @@ DEBUG (22): REMOVE	PARENT	11	COST	3>2
 DEBUG (22): REMOVE	PARENT	10	COST	3>2
 DEBUG (22): REMOVE	PARENT	21	COST	4>2
 \end{lstlisting}
-In the Listing~\ref{lst:22} can be seen the routing debug messages of the node 22 on a rellbrp simulation loop. After the first beacon the parent structure contains {2,4,5,9,10,11,16,17,18,21}, then the maximum number of parents its reached. The second beacon comes from 16, which is already a parent of 22, so no problems come from that and for that application cycle there are no change in the structure. The third and last beacon are forwarded by 1, which is not a parent and because it comes with a cost equal to the current and the structure is full, the last parent (16 in this case) is substituted by 2. During this cycle, the network had some problem which is highlighted by the fact that 6 of the previous parents are removed by the structure due to their increased cost to reach the sink. The CPR version\footnote{if interested the log is on \textit{results/25/routing\_22}} is even more interesting and give some information on the network, infact a lot of NO\_PARENT\_MESSAGES are sent and the network are not able to reach a stable routing. So in general, it can be said that CPR introduces some overhead in this scenario, which is due to the fact that the links are not good and the delivery of the beacons can be seen as a matter of "luck". In cases like these (and in real world development), would be better to have a link quality estimator, which can help in the choice of parents by adding a knowledge of the "goodness" of the link along to their cost.
+In the Listing~\ref{lst:22} can be seen the routing debug messages of the node 22 on a rellbrp simulation loop. After the first beacon the parent structure contains {2,4,5,9,10,11,16,17,18,21}, then the maximum number of parents its reached. The second beacon comes from 16, which is already a parent of 22, so no problems come from that and for that application cycle there are no change in the structure. The third and last beacon is forwarded by 1, which is not a parent and because it comes with a cost equal to the current and the structure is full, the last parent (16 in this case) is substituted by 2. During this cycle, the network had some problem which is highlighted by the fact that 6 of the previous parents are removed by the structure due to their increased cost to reach the sink. The CPR version\footnote{if interested the log is on \textit{results/25/routing\_22}} is even more interesting and give some information on the network, infact a lot of NO\_PARENT\_MESSAGES are sent and the network are not able to reach a stable routing. So in general, it can be said that CPR introduces some overhead in this scenario, which is due to the fact that the links are not good and the delivery of the beacons can be seen as a matter of "luck". In cases like these (and in real world development), would be better to have a link quality estimator, which can help in the choice of parents by adding a knowledge of the "goodness" of the link along to their cost.
 		\begin{table}[H]
 			\begin{center}
 			    \begin{tabular}{|c|c|c|c|c|c|}
@@ -511,7 +511,7 @@ In the Listing~\ref{lst:22} can be seen the routing debug messages of the node 2
 			\label{tab:25Arrivals22}
 		\end{table}
 
-Anyway from the Table~\ref{tab:25Arrivals22} it can be seen that even if some overhead was introduced by the CPR algorithm, the performance of the protocol were near to the one of the best-effort tree and by looking at the results of other nodes, in the majority of the cases the delivered messages are even more than the ones done in the other versions.
+Anyway from the Table~\ref{tab:25Arrivals22} it can be seen that even if some overhead was introduced by the CPR algorithm, the performance of the protocol were near to the ones of the best-effort tree and by looking at the results of other nodes, in the majority of the cases the delivered messages are even more than the ones done in the other versions.
 
 
 %\\In cases like these (and in real world development), would be better to have a link quality estimator to choose 
@@ -522,7 +522,7 @@ Anyway from the Table~\ref{tab:25Arrivals22} it can be seen that even if some ov
 %----------------------------------------------------------------------------------------
 
 \section{Conclusions}
-In general the performances of LBRP was good and the algorithm performs as expected. Sometimes the overhead, introduced by the need of using a specific structure and the routines needed for the load balancing, were affecting the numbers of forwarding w.r.t. the tree protocol, but the differences was almost negligible. Even if some tweak is still needed, the CPR was working well, but when I will have some time I will implement the \textit{rebuild messages}\footnote{Sec~\ref{sec:rebuildMessages} at page~\pageref{sec:rebuildMessages}} feature to see its influence on the routing process.
+In general the performances of LBRP were good and the algorithm performed as expected. Sometimes the overhead, introduced by the need of using a specific structure and the routines needed for the load balancing, were affecting the numbers of forwarding w.r.t. the tree protocol, but the differences was almost negligible. Even if some tweak is still needed, the CPR was working well, but when I will have some time I will implement the \textit{rebuild messages}\footnote{Sec~\ref{sec:rebuildMessages} at page~\pageref{sec:rebuildMessages}} feature to see its influence on the routing process.
 However, as shown for the bigger and random topologies, the quality of the channel and link have a huge impact on the performances of the algorithms e on their choices.I think that in order to obtain better results, would be necessary to integrate some kind of lin quality estimator (RSSI,LQI,ETX), so that a metric on the communication environment can help to choose whether a neighbor can be good parent or not. Without that, the routing protocols might be subjected to the delivery of beacons from not-so-reliable links, which can compromise the operating principle of the network. Moreover, the introduction of a data aggregation scheme could be an interesting choice to enhance the performance on the data layer, which might prevent the buffer congestion problem. For instance, the whole current buffer can be forwarded, so that at each trigger of the send timer, the buffer is emptied. However it should be better analysed, because in some scenario it could lead to "bottle-neck" problem on some nodes.
 \clearpage
 %----------------------------------------------------------------------------------------
@@ -540,7 +540,7 @@ However, as shown for the bigger and random topologies, the quality of the chann
 			\small This is the configuration at the start&\begin{center}\includegraphics[scale=.4]{graphs/newlink_0_start}\end{center}\\
 			\hline
 			\begin{center}\includegraphics[scale=.4]{graphs/newlink_1_routing}\end{center}&\begin{center}\includegraphics[scale=.4]{graphs/newlink_1tree_routing}\end{center}\\
-			\multicolumn{2}{p{12cm}}{\small After the first beacon, the difference between the Tree protocol and the LBRP is that in the first the node 6 will have just 1 as parent, while in the latter 3 will be chosen as another parent, because both 1 and 3 reaches the sink through 1 hop}\\
+			\multicolumn{2}{p{12cm}}{\small After the first beacon, the difference between the Tree protocol and the LBRP is that in the first the node 6 will have just 1 as parent, while in the latter 3 will be chosen as another parent, because both 1 and 3 reach the sink through 1 hop}\\
 			\hline
 			\small At the 30\% of the simulation the red links will be removed, so the network will reconstruct in the way depicted in the figure on the right, so that a long chain will be used to deliver messages&\begin{center}\includegraphics[scale=.4]{graphs/newlink_2_remove}\end{center}\\
 			\hline
@@ -582,7 +582,7 @@ However, as shown for the bigger and random topologies, the quality of the chann
 			\small This topology is characterised by a stable configuration and links with a good gain. &\begin{center}\includegraphics[scale=.4]{graphs/stable_0_start}\end{center}\\
 			\hline
 			\begin{center}\includegraphics[scale=.4]{graphs/stable_1_routing}\end{center}&\begin{center}\includegraphics[scale=.4]{graphs/stable_1tree_routing}\end{center}\\
-			\multicolumn{2}{p{12cm}}{\small After the first beacon, the difference between the Tree protocol and the LBRP is that the "second layer" nodes will route their traffic to 1 when using a Tree versions, while by using LBRP the traffic will be split between 1,2,3}\\
+			\multicolumn{2}{p{12cm}}{\small After the first beacon, the difference between the Tree protocol and the LBRP is that the "second layer" nodes will route their traffic to 1 when using a Tree version, while by using LBRP the traffic will be split between 1,2,3}\\
 			\hline
 		\end{tabular}
 		\label{tab:stableIndepth}
